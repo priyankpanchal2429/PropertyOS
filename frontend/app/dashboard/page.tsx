@@ -260,7 +260,7 @@ export default function DashboardPage() {
                 Click anywhere on this card to search, filter, and inspect the room statuses.
               </div>
               <div className="text-xs font-bold text-primary flex items-center gap-1 group-hover:translate-x-1 transition-transform">
-                Inspect 50 Rooms →
+                Inspect {stats.occupiedRooms + stats.dirtyRooms} Rooms →
               </div>
             </div>
           </CardContent>
