@@ -1,0 +1,34 @@
+# Node & Package Managers
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# Build outputs
+/backend/dist
+/frontend/.next
+/frontend/out
+build/
+dist/
+
+# Environments & Secrets
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+*.env
+backend/.env
+frontend/.env
+frontend/*.local
+
+# Debug logs
+logs/
+*.log
+
+# OS Metadata
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
