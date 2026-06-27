@@ -151,13 +151,13 @@ export default function DashboardPage() {
   const getStatusColor = (status: RoomData['status']) => {
     switch (status) {
       case 'Vacant':
-        return 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/30 dark:text-emerald-400 dark:border-emerald-800';
+        return 'bg-emerald-500/5 text-emerald-700 border-emerald-500/20 hover:bg-emerald-500/10 dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-emerald-500/20 dark:hover:bg-emerald-500/15';
       case 'Occupied':
-        return 'bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/30 dark:text-blue-400 dark:border-blue-800';
+        return 'bg-blue-500/5 text-blue-700 border-blue-500/20 hover:bg-blue-500/10 dark:bg-blue-500/10 dark:text-blue-400 dark:border-blue-500/20 dark:hover:bg-blue-500/15';
       case 'Dirty':
-        return 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/30 dark:text-amber-400 dark:border-amber-800';
+        return 'bg-amber-500/5 text-amber-700 border-amber-500/20 hover:bg-amber-500/10 dark:bg-amber-500/10 dark:text-amber-400 dark:border-amber-500/20 dark:hover:bg-amber-500/15';
       case 'Maintenance':
-        return 'bg-red-50 text-red-700 border-red-200 dark:bg-red-950/30 dark:text-red-400 dark:border-red-800';
+        return 'bg-red-500/5 text-red-700 border-red-500/20 hover:bg-red-500/10 dark:bg-red-500/10 dark:text-red-400 dark:border-red-500/20 dark:hover:bg-red-500/15';
     }
   };
 
@@ -283,24 +283,34 @@ export default function DashboardPage() {
               <h3 className="text-xs font-black uppercase tracking-widest text-muted-foreground">
                 1 Queen Bed ({queenRooms.length} Rooms)
               </h3>
-              <div className="grid grid-cols-5 sm:grid-cols-8 md:grid-cols-10 lg:grid-cols-12 xl:grid-cols-16 gap-2.5">
+              <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 xl:grid-cols-10 gap-3">
                 {queenRooms.map((room) => {
                   const credits = getRoomCredits(room.type, room.status);
                   return (
                     <button
                       key={room.number}
                       onClick={() => openStatusDialog(room)}
-                      className={`flex flex-col items-center justify-center p-2 rounded-lg border text-center transition-all cursor-pointer focus:outline-none focus:ring-1 focus:ring-primary/20 hover:scale-[1.02] shadow-none relative ${getStatusColor(
+                      className={`flex flex-col justify-between p-3 rounded-xl border text-left transition-all cursor-pointer focus:outline-none focus:ring-1 focus:ring-primary/20 hover:scale-[1.02] shadow-xs h-[92px] w-full ${getStatusColor(
                         room.status
                       )}`}
                     >
-                      <span className="absolute -top-1 -right-1 text-[8px] font-black px-1.5 py-0.5 rounded-full bg-slate-900 text-slate-50 dark:bg-slate-50 dark:text-slate-950 shadow-xs border border-border/10">
-                        {credits}
-                      </span>
-                      <span className="text-sm font-black tracking-tight">{room.number}</span>
-                      <span className="text-[9px] font-medium tracking-wide uppercase opacity-85 mt-0.5">
+                      <div className="flex justify-between items-center w-full">
+                        <span className="text-[8px] font-bold uppercase tracking-wider opacity-60">
+                          1 Queen
+                        </span>
+                        <span className="text-[9px] font-extrabold px-1.5 py-0.5 rounded-md bg-black/5 dark:bg-white/10">
+                          {credits} cr
+                        </span>
+                      </div>
+                      <span className="text-lg font-black tracking-tight leading-none mt-1.5 mb-1.5">{room.number}</span>
+                      <div className="flex items-center text-[8px] font-black tracking-wider uppercase gap-1 w-full opacity-80">
+                        <span className={`h-1.5 w-1.5 rounded-full ${
+                          room.status === 'Vacant' ? 'bg-emerald-500' :
+                          room.status === 'Occupied' ? 'bg-blue-500' :
+                          room.status === 'Dirty' ? 'bg-amber-500' : 'bg-red-500'
+                        }`} />
                         {room.status}
-                      </span>
+                      </div>
                     </button>
                   );
                 })}
@@ -321,17 +331,27 @@ export default function DashboardPage() {
                     <button
                       key={room.number}
                       onClick={() => openStatusDialog(room)}
-                      className={`flex flex-col items-center justify-center p-2 rounded-lg border text-center transition-all cursor-pointer focus:outline-none focus:ring-1 focus:ring-primary/20 hover:scale-[1.02] shadow-none relative ${getStatusColor(
+                      className={`flex flex-col justify-between p-3 rounded-xl border text-left transition-all cursor-pointer focus:outline-none focus:ring-1 focus:ring-primary/20 hover:scale-[1.02] shadow-xs h-[92px] w-full ${getStatusColor(
                         room.status
                       )}`}
                     >
-                      <span className="absolute -top-1 -right-1 text-[8px] font-black px-1.5 py-0.5 rounded-full bg-slate-900 text-slate-50 dark:bg-slate-50 dark:text-slate-950 shadow-xs border border-border/10">
-                        {credits}
-                      </span>
-                      <span className="text-sm font-black tracking-tight">{room.number}</span>
-                      <span className="text-[9px] font-medium tracking-wide uppercase opacity-85 mt-0.5">
+                      <div className="flex justify-between items-center w-full">
+                        <span className="text-[8px] font-bold uppercase tracking-wider opacity-60">
+                          1 King
+                        </span>
+                        <span className="text-[9px] font-extrabold px-1.5 py-0.5 rounded-md bg-black/5 dark:bg-white/10">
+                          {credits} cr
+                        </span>
+                      </div>
+                      <span className="text-lg font-black tracking-tight leading-none mt-1.5 mb-1.5">{room.number}</span>
+                      <div className="flex items-center text-[8px] font-black tracking-wider uppercase gap-1 w-full opacity-80">
+                        <span className={`h-1.5 w-1.5 rounded-full ${
+                          room.status === 'Vacant' ? 'bg-emerald-500' :
+                          room.status === 'Occupied' ? 'bg-blue-500' :
+                          room.status === 'Dirty' ? 'bg-amber-500' : 'bg-red-500'
+                        }`} />
                         {room.status}
-                      </span>
+                      </div>
                     </button>
                   );
                 })}
@@ -352,17 +372,27 @@ export default function DashboardPage() {
                     <button
                       key={room.number}
                       onClick={() => openStatusDialog(room)}
-                      className={`flex flex-col items-center justify-center p-2 rounded-lg border text-center transition-all cursor-pointer focus:outline-none focus:ring-1 focus:ring-primary/20 hover:scale-[1.02] shadow-none relative ${getStatusColor(
+                      className={`flex flex-col justify-between p-3 rounded-xl border text-left transition-all cursor-pointer focus:outline-none focus:ring-1 focus:ring-primary/20 hover:scale-[1.02] shadow-xs h-[92px] w-full ${getStatusColor(
                         room.status
                       )}`}
                     >
-                      <span className="absolute -top-1 -right-1 text-[8px] font-black px-1.5 py-0.5 rounded-full bg-slate-900 text-slate-50 dark:bg-slate-50 dark:text-slate-950 shadow-xs border border-border/10">
-                        {credits}
-                      </span>
-                      <span className="text-sm font-black tracking-tight">{room.number}</span>
-                      <span className="text-[9px] font-medium tracking-wide uppercase opacity-85 mt-0.5">
+                      <div className="flex justify-between items-center w-full">
+                        <span className="text-[8px] font-bold uppercase tracking-wider opacity-60">
+                          King ADA
+                        </span>
+                        <span className="text-[9px] font-extrabold px-1.5 py-0.5 rounded-md bg-black/5 dark:bg-white/10">
+                          {credits} cr
+                        </span>
+                      </div>
+                      <span className="text-lg font-black tracking-tight leading-none mt-1.5 mb-1.5">{room.number}</span>
+                      <div className="flex items-center text-[8px] font-black tracking-wider uppercase gap-1 w-full opacity-80">
+                        <span className={`h-1.5 w-1.5 rounded-full ${
+                          room.status === 'Vacant' ? 'bg-emerald-500' :
+                          room.status === 'Occupied' ? 'bg-blue-500' :
+                          room.status === 'Dirty' ? 'bg-amber-500' : 'bg-red-500'
+                        }`} />
                         {room.status}
-                      </span>
+                      </div>
                     </button>
                   );
                 })}
@@ -383,17 +413,27 @@ export default function DashboardPage() {
                     <button
                       key={room.number}
                       onClick={() => openStatusDialog(room)}
-                      className={`flex flex-col items-center justify-center p-2 rounded-lg border text-center transition-all cursor-pointer focus:outline-none focus:ring-1 focus:ring-primary/20 hover:scale-[1.02] shadow-none relative ${getStatusColor(
+                      className={`flex flex-col justify-between p-3 rounded-xl border text-left transition-all cursor-pointer focus:outline-none focus:ring-1 focus:ring-primary/20 hover:scale-[1.02] shadow-xs h-[92px] w-full ${getStatusColor(
                         room.status
                       )}`}
                     >
-                      <span className="absolute -top-1 -right-1 text-[8px] font-black px-1.5 py-0.5 rounded-full bg-slate-900 text-slate-50 dark:bg-slate-50 dark:text-slate-950 shadow-xs border border-border/10">
-                        {credits}
-                      </span>
-                      <span className="text-sm font-black tracking-tight">{room.number}</span>
-                      <span className="text-[9px] font-medium tracking-wide uppercase opacity-85 mt-0.5">
+                      <div className="flex justify-between items-center w-full">
+                        <span className="text-[8px] font-bold uppercase tracking-wider opacity-60">
+                          2 Queen
+                        </span>
+                        <span className="text-[9px] font-extrabold px-1.5 py-0.5 rounded-md bg-black/5 dark:bg-white/10">
+                          {credits} cr
+                        </span>
+                      </div>
+                      <span className="text-lg font-black tracking-tight leading-none mt-1.5 mb-1.5">{room.number}</span>
+                      <div className="flex items-center text-[8px] font-black tracking-wider uppercase gap-1 w-full opacity-80">
+                        <span className={`h-1.5 w-1.5 rounded-full ${
+                          room.status === 'Vacant' ? 'bg-emerald-500' :
+                          room.status === 'Occupied' ? 'bg-blue-500' :
+                          room.status === 'Dirty' ? 'bg-amber-500' : 'bg-red-500'
+                        }`} />
                         {room.status}
-                      </span>
+                      </div>
                     </button>
                   );
                 })}
