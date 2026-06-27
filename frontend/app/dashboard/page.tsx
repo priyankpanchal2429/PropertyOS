@@ -1,32 +1,17 @@
 'use client';
 
 import React, { useState } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { apiClient } from '@/lib/api-client';
 import {
   Home,
-  CheckCircle,
   AlertTriangle,
-  User,
-  Wrench,
-  Loader2,
-  Calendar,
   Sparkles,
   Search,
 } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
-import { Input } from '@/components/ui/input';
-import { toast } from 'sonner';
 
 interface RoomData {
   number: string;
@@ -66,9 +51,6 @@ const getRoomCredits = (type: string, status: string): number => {
 
 export default function DashboardPage() {
   const queryClient = useQueryClient();
-  const [selectedRoom, setSelectedRoom] = useState<RoomData | null>(null);
-  const [statusVal, setStatusVal] = useState<'Vacant' | 'Occupied' | 'Dirty' | 'Maintenance'>('Vacant');
-  const [guestName, setGuestName] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
 
   React.useEffect(() => {
@@ -99,47 +81,6 @@ export default function DashboardPage() {
     },
     refetchInterval: 10000, // Auto-refresh every 10s for real-time occupancy updates
   });
-
-  // Mutate Room Status
-  const statusMutation = useMutation({
-    mutationFn: async ({
-      number,
-      status,
-      currentGuestName,
-    }: {
-      number: string;
-      status: string;
-      currentGuestName?: string;
-    }) => {
-      return apiClient.patch(`/dashboard/rooms/${number}/status`, {
-        status,
-        currentGuestName,
-      });
-    },
-    onSuccess: (res, variables) => {
-      toast.success(`Room ${variables.number} updated to ${variables.status}`);
-      queryClient.invalidateQueries({ queryKey: ['dashboardStats'] });
-      setSelectedRoom(null);
-    },
-    onError: (err: any) => {
-      toast.error(err.response?.data?.message || 'Failed to update room status');
-    },
-  });
-
-  const openStatusDialog = (room: RoomData) => {
-    setSelectedRoom(room);
-    setStatusVal(room.status);
-    setGuestName(room.currentGuestName || '');
-  };
-
-  const handleUpdateStatus = () => {
-    if (!selectedRoom) return;
-    statusMutation.mutate({
-      number: selectedRoom.number,
-      status: statusVal,
-      currentGuestName: statusVal === 'Occupied' ? guestName : undefined,
-    });
-  };
 
   if (isLoading) {
     return <DashboardSkeleton />;
@@ -186,13 +127,13 @@ export default function DashboardPage() {
   const getStatusColor = (status: RoomData['status']) => {
     switch (status) {
       case 'Vacant':
-        return 'bg-emerald-500/5 text-emerald-700 border-emerald-500/20 hover:bg-emerald-500/10 dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-emerald-500/20 dark:hover:bg-emerald-500/15';
+        return 'bg-emerald-500/5 text-emerald-700 border-emerald-500/20 dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-emerald-500/20';
       case 'Occupied':
-        return 'bg-blue-500/5 text-blue-700 border-blue-500/20 hover:bg-blue-500/10 dark:bg-blue-500/10 dark:text-blue-400 dark:border-blue-500/20 dark:hover:bg-blue-500/15';
+        return 'bg-blue-500/5 text-blue-700 border-blue-500/20 dark:bg-blue-500/10 dark:text-blue-400 dark:border-blue-500/20';
       case 'Dirty':
-        return 'bg-amber-500/5 text-amber-700 border-amber-500/20 hover:bg-amber-500/10 dark:bg-amber-500/10 dark:text-amber-400 dark:border-amber-500/20 dark:hover:bg-amber-500/15';
+        return 'bg-amber-500/5 text-amber-700 border-amber-500/20 dark:bg-amber-500/10 dark:text-amber-400 dark:border-amber-500/20';
       case 'Maintenance':
-        return 'bg-red-500/5 text-red-700 border-red-500/20 hover:bg-red-500/10 dark:bg-red-500/10 dark:text-red-400 dark:border-red-500/20 dark:hover:bg-red-500/15';
+        return 'bg-red-500/5 text-red-700 border-red-500/20 dark:bg-red-500/10 dark:text-red-400 dark:border-red-500/20';
     }
   };
 
@@ -303,7 +244,7 @@ export default function DashboardPage() {
         </Card>
       </div>
 
-      {/* Main Room Layout Grid */}
+      {/* Main Room Grid Display */}
       <div className="space-y-6">
         <div className="flex items-center space-x-2 border-b pb-2">
           <Home className="h-5 w-5 text-muted-foreground" />
@@ -346,10 +287,9 @@ export default function DashboardPage() {
                     {queenRooms.map((room) => {
                       const credits = getRoomCredits(room.type, room.status);
                       return (
-                        <button
+                        <div
                           key={room.number}
-                          onClick={() => openStatusDialog(room)}
-                          className={`flex flex-col justify-between p-3 rounded-xl border text-left transition-all cursor-pointer focus:outline-none focus:ring-1 focus:ring-primary/20 hover:scale-[1.02] shadow-xs h-[92px] w-full ${getStatusColor(
+                          className={`flex flex-col justify-between p-3 rounded-xl border text-left transition-all shadow-xs h-[92px] w-full ${getStatusColor(
                             room.status
                           )}`}
                         >
@@ -370,7 +310,7 @@ export default function DashboardPage() {
                             }`} />
                             {room.status}
                           </div>
-                        </button>
+                        </div>
                       );
                     })}
                   </div>
@@ -387,10 +327,9 @@ export default function DashboardPage() {
                     {kingRooms.map((room) => {
                       const credits = getRoomCredits(room.type, room.status);
                       return (
-                        <button
+                        <div
                           key={room.number}
-                          onClick={() => openStatusDialog(room)}
-                          className={`flex flex-col justify-between p-3 rounded-xl border text-left transition-all cursor-pointer focus:outline-none focus:ring-1 focus:ring-primary/20 hover:scale-[1.02] shadow-xs h-[92px] w-full ${getStatusColor(
+                          className={`flex flex-col justify-between p-3 rounded-xl border text-left transition-all shadow-xs h-[92px] w-full ${getStatusColor(
                             room.status
                           )}`}
                         >
@@ -411,7 +350,7 @@ export default function DashboardPage() {
                             }`} />
                             {room.status}
                           </div>
-                        </button>
+                        </div>
                       );
                     })}
                   </div>
@@ -428,10 +367,9 @@ export default function DashboardPage() {
                     {adaRooms.map((room) => {
                       const credits = getRoomCredits(room.type, room.status);
                       return (
-                        <button
+                        <div
                           key={room.number}
-                          onClick={() => openStatusDialog(room)}
-                          className={`flex flex-col justify-between p-3 rounded-xl border text-left transition-all cursor-pointer focus:outline-none focus:ring-1 focus:ring-primary/20 hover:scale-[1.02] shadow-xs h-[92px] w-full ${getStatusColor(
+                          className={`flex flex-col justify-between p-3 rounded-xl border text-left transition-all shadow-xs h-[92px] w-full ${getStatusColor(
                             room.status
                           )}`}
                         >
@@ -452,7 +390,7 @@ export default function DashboardPage() {
                             }`} />
                             {room.status}
                           </div>
-                        </button>
+                        </div>
                       );
                     })}
                   </div>
@@ -469,10 +407,9 @@ export default function DashboardPage() {
                     {doubleQueenRooms.map((room) => {
                       const credits = getRoomCredits(room.type, room.status);
                       return (
-                        <button
+                        <div
                           key={room.number}
-                          onClick={() => openStatusDialog(room)}
-                          className={`flex flex-col justify-between p-3 rounded-xl border text-left transition-all cursor-pointer focus:outline-none focus:ring-1 focus:ring-primary/20 hover:scale-[1.02] shadow-xs h-[92px] w-full ${getStatusColor(
+                          className={`flex flex-col justify-between p-3 rounded-xl border text-left transition-all shadow-xs h-[92px] w-full ${getStatusColor(
                             room.status
                           )}`}
                         >
@@ -493,7 +430,7 @@ export default function DashboardPage() {
                             }`} />
                             {room.status}
                           </div>
-                        </button>
+                        </div>
                       );
                     })}
                   </div>
@@ -503,79 +440,6 @@ export default function DashboardPage() {
           )}
         </div>
       </div>
-
-      {/* Dialog for Changing Room Status */}
-      <Dialog open={!!selectedRoom} onOpenChange={(open) => !open && setSelectedRoom(null)}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle className="text-lg font-bold">Room {selectedRoom?.number} Controls</DialogTitle>
-            <DialogDescription className="text-xs text-muted-foreground">
-              Type: {selectedRoom?.type}
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="space-y-4 py-2.5">
-            {/* Status Select Options */}
-            <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                Select Status
-              </label>
-              <div className="grid grid-cols-2 gap-2">
-                {(['Vacant', 'Occupied', 'Dirty', 'Maintenance'] as const).map((s) => (
-                  <Button
-                    key={s}
-                    type="button"
-                    variant={statusVal === s ? 'default' : 'outline'}
-                    className="text-xs font-bold h-9"
-                    onClick={() => setStatusVal(s)}
-                  >
-                    {s}
-                  </Button>
-                ))}
-              </div>
-            </div>
-
-            {/* Guest Name input (only for Occupied) */}
-            {statusVal === 'Occupied' && (
-              <div className="space-y-1.5 animate-in fade-in-50 duration-200">
-                <label
-                  htmlFor="guestName"
-                  className="text-xs font-semibold text-muted-foreground uppercase tracking-wider"
-                >
-                  Guest Name
-                </label>
-                <div className="relative">
-                  <User className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    id="guestName"
-                    type="text"
-                    placeholder="Enter guest name"
-                    value={guestName}
-                    onChange={(e) => setGuestName(e.target.value)}
-                    className="pl-9 focus-visible:ring-primary h-9 text-sm"
-                  />
-                </div>
-              </div>
-            )}
-          </div>
-
-          <DialogFooter className="flex sm:justify-end space-x-2 pt-2">
-            <Button variant="outline" size="sm" onClick={() => setSelectedRoom(null)} disabled={statusMutation.isPending}>
-              Cancel
-            </Button>
-            <Button size="sm" onClick={handleUpdateStatus} disabled={statusMutation.isPending}>
-              {statusMutation.isPending ? (
-                <>
-                  <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" />
-                  Updating...
-                </>
-              ) : (
-                'Save Changes'
-              )}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }
