@@ -9,7 +9,7 @@ const getCookieOptions = () => {
   return {
     httpOnly: true,
     secure: process.env.COOKIE_SECURE === 'true' || isProd,
-    sameSite: (process.env.COOKIE_SAME_SITE || 'lax') as 'lax' | 'strict' | 'none',
+    sameSite: (process.env.COOKIE_SAME_SITE || (isProd ? 'none' : 'lax')) as 'lax' | 'strict' | 'none',
     maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
     path: '/api/auth', // Scoped to auth endpoints to minimize exposure
   };
