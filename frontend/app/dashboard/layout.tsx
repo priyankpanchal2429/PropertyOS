@@ -62,6 +62,56 @@ export default function DashboardLayout({
   const [isMobileOpen, setIsMobileOpen] = useState(false);
   const [activeTab, setActiveTab] = useState('Dashboard');
 
+  const [notifications, setNotifications] = useState([
+    {
+      id: 1,
+      category: 'System',
+      type: 'success',
+      message: 'Hotel database initialized with 50 active rooms.',
+      time: '1h ago',
+      read: false,
+    },
+    {
+      id: 2,
+      category: 'Front Desk',
+      type: 'info',
+      message: 'Admin account (teju001) successfully logged in.',
+      time: '10m ago',
+      read: false,
+    },
+    {
+      id: 3,
+      category: 'Housekeeping',
+      type: 'alert',
+      message: 'Room 116 marked DIRTY (Checkout). Credits updated to 35.',
+      time: '2m ago',
+      read: false,
+    },
+  ]);
+
+  const unreadCount = notifications.filter((n) => !n.read).length;
+
+  const markAllRead = () => {
+    setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
+  };
+
+  const markRead = (id: number) => {
+    setNotifications((prev) => prev.map((n) => (n.id === id ? { ...n, read: true } : n)));
+  };
+
+  const handleSearch = (value: string) => {
+    if (typeof window !== 'undefined') {
+      const url = new URL(window.location.href);
+      if (value) {
+        url.searchParams.set('search', value);
+      } else {
+        url.searchParams.delete('search');
+      }
+      window.history.replaceState({}, '', url.toString());
+      window.dispatchEvent(new Event('search-change'));
+    }
+  };
+
   const navigation: SidebarItem[] = [
     { name: 'Dashboard', icon: LayoutDashboard, href: '#' },
     { name: 'Staff', icon: Users, href: '#' },
@@ -222,13 +272,9 @@ export default function DashboardLayout({
               <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground pointer-events-none" />
               <Input
                 type="search"
-                placeholder="Search anything..."
+                placeholder="Search rooms, guest, status..."
                 className="pl-9 h-9 bg-muted/40 border-muted focus-visible:ring-primary w-full"
-                onChange={(e) => {
-                  if (e.target.value.trim() !== '') {
-                    toast.info('Search functionality placeholder.');
-                  }
-                }}
+                onChange={(e) => handleSearch(e.target.value)}
               />
             </div>
 
@@ -244,17 +290,56 @@ export default function DashboardLayout({
               <Moon className="absolute h-4 w-4 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
             </Button>
 
-            {/* Notifications */}
-            <Button
-              variant="ghost"
-              size="icon"
-              className="relative h-9 w-9 text-muted-foreground hover:text-foreground border rounded-md"
-              onClick={() => toast.info('You have 0 new notifications.')}
-              aria-label="View notifications"
-            >
-              <Bell className="h-4 w-4" />
-              <span className="absolute right-2 top-2 h-1.5 w-1.5 rounded-full bg-primary" />
-            </Button>
+            {/* Notifications Dropdown */}
+            <DropdownMenu>
+              <DropdownMenuTrigger className="relative h-9 w-9 text-muted-foreground hover:text-foreground border rounded-md flex items-center justify-center cursor-pointer focus:outline-none focus:ring-1 focus:ring-primary/20">
+                <Bell className="h-4 w-4" />
+                {unreadCount > 0 && (
+                  <span className="absolute right-2 top-2 h-1.5 w-1.5 rounded-full bg-primary animate-pulse" />
+                )}
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-80 p-2 bg-card border shadow-lg rounded-xl">
+                <div className="text-xs font-bold px-2 py-1.5 flex justify-between items-center border-b pb-2 mb-1">
+                  <span>Operational Notifications</span>
+                  {unreadCount > 0 && (
+                    <button
+                      onClick={markAllRead}
+                      className="text-[10px] font-semibold text-primary hover:underline cursor-pointer focus:outline-none"
+                    >
+                      Mark all read
+                    </button>
+                  )}
+                </div>
+                <div className="max-h-64 overflow-y-auto space-y-1 py-1">
+                  {notifications.length === 0 ? (
+                    <div className="text-center py-6 text-xs text-muted-foreground">
+                      No notifications yet
+                    </div>
+                  ) : (
+                    notifications.map((notif) => (
+                      <DropdownMenuItem
+                        key={notif.id}
+                        className={`text-xs p-2.5 rounded-lg flex flex-col items-start gap-1 cursor-pointer focus:bg-muted ${
+                          !notif.read ? 'bg-primary/5 font-semibold' : 'opacity-70'
+                        }`}
+                        onClick={() => markRead(notif.id)}
+                      >
+                        <div className="flex justify-between items-center w-full">
+                          <span className={`text-[9px] font-extrabold uppercase tracking-wider ${
+                            notif.type === 'success' ? 'text-emerald-500' :
+                            notif.type === 'alert' ? 'text-amber-500' : 'text-blue-500'
+                          }`}>
+                            {notif.category}
+                          </span>
+                          <span className="text-[9px] text-muted-foreground font-medium">{notif.time}</span>
+                        </div>
+                        <p className="text-foreground text-left text-[11px] leading-tight font-medium mt-0.5">{notif.message}</p>
+                      </DropdownMenuItem>
+                    ))
+                  )}
+                </div>
+              </DropdownMenuContent>
+            </DropdownMenu>
 
             {/* User Dropdown */}
             <DropdownMenu>

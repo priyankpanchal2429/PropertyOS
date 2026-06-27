@@ -12,6 +12,7 @@ import {
   Loader2,
   Calendar,
   Sparkles,
+  Search,
 } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -68,6 +69,26 @@ export default function DashboardPage() {
   const [selectedRoom, setSelectedRoom] = useState<RoomData | null>(null);
   const [statusVal, setStatusVal] = useState<'Vacant' | 'Occupied' | 'Dirty' | 'Maintenance'>('Vacant');
   const [guestName, setGuestName] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
+
+  React.useEffect(() => {
+    const readSearch = () => {
+      if (typeof window !== 'undefined') {
+        const params = new URLSearchParams(window.location.search);
+        setSearchQuery(params.get('search') || '');
+      }
+    };
+
+    readSearch();
+
+    window.addEventListener('search-change', readSearch);
+    window.addEventListener('popstate', readSearch);
+
+    return () => {
+      window.removeEventListener('search-change', readSearch);
+      window.removeEventListener('popstate', readSearch);
+    };
+  }, []);
 
   // Fetch Stats and Rooms list
   const { data, isLoading, error } = useQuery<StatsData>({
@@ -142,11 +163,25 @@ export default function DashboardPage() {
   const { stats, rooms, weeklyOccupancy } = data!;
   const totalCredits = rooms.reduce((acc, room) => acc + getRoomCredits(room.type, room.status), 0);
 
-  // Group rooms by category
-  const queenRooms = rooms.filter((r) => r.type === '1 Queen Bed');
-  const kingRooms = rooms.filter((r) => r.type === '1 King Bed');
-  const adaRooms = rooms.filter((r) => r.type === '1 King ADA');
-  const doubleQueenRooms = rooms.filter((r) => r.type === '2 Queen Beds');
+  const filterRooms = (list: RoomData[]) => {
+    if (!searchQuery) return list;
+    const q = searchQuery.toLowerCase().trim();
+    return list.filter(
+      (r) =>
+        r.number.includes(q) ||
+        r.status.toLowerCase().includes(q) ||
+        r.type.toLowerCase().includes(q) ||
+        r.currentGuestName?.toLowerCase().includes(q)
+    );
+  };
+
+  // Group rooms by category and apply search query filters
+  const queenRooms = filterRooms(rooms.filter((r) => r.type === '1 Queen Bed'));
+  const kingRooms = filterRooms(rooms.filter((r) => r.type === '1 King Bed'));
+  const adaRooms = filterRooms(rooms.filter((r) => r.type === '1 King ADA'));
+  const doubleQueenRooms = filterRooms(rooms.filter((r) => r.type === '2 Queen Beds'));
+
+  const totalFiltered = queenRooms.length + kingRooms.length + adaRooms.length + doubleQueenRooms.length;
 
   const getStatusColor = (status: RoomData['status']) => {
     switch (status) {
@@ -277,168 +312,194 @@ export default function DashboardPage() {
 
         {/* Categories Section */}
         <div className="space-y-8">
-          {/* 1 Queen Bed */}
-          {queenRooms.length > 0 && (
-            <div className="space-y-3">
-              <h3 className="text-xs font-black uppercase tracking-widest text-muted-foreground">
-                1 Queen Bed ({queenRooms.length} Rooms)
-              </h3>
-              <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 xl:grid-cols-10 gap-3">
-                {queenRooms.map((room) => {
-                  const credits = getRoomCredits(room.type, room.status);
-                  return (
-                    <button
-                      key={room.number}
-                      onClick={() => openStatusDialog(room)}
-                      className={`flex flex-col justify-between p-3 rounded-xl border text-left transition-all cursor-pointer focus:outline-none focus:ring-1 focus:ring-primary/20 hover:scale-[1.02] shadow-xs h-[92px] w-full ${getStatusColor(
-                        room.status
-                      )}`}
-                    >
-                      <div className="flex justify-between items-center w-full">
-                        <span className="text-[8px] font-bold uppercase tracking-wider opacity-60">
-                          1 Queen
-                        </span>
-                        <span className="text-[9px] font-extrabold px-1.5 py-0.5 rounded-md bg-black/5 dark:bg-white/10">
-                          {credits} cr
-                        </span>
-                      </div>
-                      <span className="text-lg font-black tracking-tight leading-none mt-1.5 mb-1.5">{room.number}</span>
-                      <div className="flex items-center text-[8px] font-black tracking-wider uppercase gap-1 w-full opacity-80">
-                        <span className={`h-1.5 w-1.5 rounded-full ${
-                          room.status === 'Vacant' ? 'bg-emerald-500' :
-                          room.status === 'Occupied' ? 'bg-blue-500' :
-                          room.status === 'Dirty' ? 'bg-amber-500' : 'bg-red-500'
-                        }`} />
-                        {room.status}
-                      </div>
-                    </button>
-                  );
-                })}
-              </div>
+          {searchQuery && totalFiltered === 0 ? (
+            <div className="text-center py-12 border border-dashed rounded-xl bg-muted/20 flex flex-col items-center justify-center space-y-2">
+              <Search className="h-8 w-8 text-muted-foreground/60" />
+              <p className="text-sm font-semibold text-muted-foreground">No rooms found matching "{searchQuery}"</p>
+              <Button
+                variant="link"
+                size="sm"
+                className="text-primary font-semibold cursor-pointer"
+                onClick={() => {
+                  if (typeof window !== 'undefined') {
+                    const url = new URL(window.location.href);
+                    url.searchParams.delete('search');
+                    window.history.replaceState({}, '', url.toString());
+                    window.dispatchEvent(new Event('search-change'));
+                    const searchInput = document.querySelector('input[type="search"]') as HTMLInputElement;
+                    if (searchInput) searchInput.value = '';
+                  }
+                }}
+              >
+                Clear Search Filter
+              </Button>
             </div>
-          )}
+          ) : (
+            <>
+              {/* 1 Queen Bed */}
+              {queenRooms.length > 0 && (
+                <div className="space-y-3">
+                  <h3 className="text-xs font-black uppercase tracking-widest text-muted-foreground">
+                    1 Queen Bed ({queenRooms.length} Rooms)
+                  </h3>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 xl:grid-cols-10 gap-3">
+                    {queenRooms.map((room) => {
+                      const credits = getRoomCredits(room.type, room.status);
+                      return (
+                        <button
+                          key={room.number}
+                          onClick={() => openStatusDialog(room)}
+                          className={`flex flex-col justify-between p-3 rounded-xl border text-left transition-all cursor-pointer focus:outline-none focus:ring-1 focus:ring-primary/20 hover:scale-[1.02] shadow-xs h-[92px] w-full ${getStatusColor(
+                            room.status
+                          )}`}
+                        >
+                          <div className="flex justify-between items-center w-full">
+                            <span className="text-[8px] font-bold uppercase tracking-wider opacity-60">
+                              1 Queen
+                            </span>
+                            <span className="text-[9px] font-extrabold px-1.5 py-0.5 rounded-md bg-black/5 dark:bg-white/10">
+                              {credits} cr
+                            </span>
+                          </div>
+                          <span className="text-lg font-black tracking-tight leading-none mt-1.5 mb-1.5">{room.number}</span>
+                          <div className="flex items-center text-[8px] font-black tracking-wider uppercase gap-1 w-full opacity-80">
+                            <span className={`h-1.5 w-1.5 rounded-full ${
+                              room.status === 'Vacant' ? 'bg-emerald-500' :
+                              room.status === 'Occupied' ? 'bg-blue-500' :
+                              room.status === 'Dirty' ? 'bg-amber-500' : 'bg-red-500'
+                            }`} />
+                            {room.status}
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
 
-          {/* 1 King Bed */}
-          {kingRooms.length > 0 && (
-            <div className="space-y-3">
-              <h3 className="text-xs font-black uppercase tracking-widest text-muted-foreground">
-                1 King Bed ({kingRooms.length} Rooms)
-              </h3>
-              <div className="grid grid-cols-5 sm:grid-cols-8 md:grid-cols-10 lg:grid-cols-12 xl:grid-cols-16 gap-2.5">
-                {kingRooms.map((room) => {
-                  const credits = getRoomCredits(room.type, room.status);
-                  return (
-                    <button
-                      key={room.number}
-                      onClick={() => openStatusDialog(room)}
-                      className={`flex flex-col justify-between p-3 rounded-xl border text-left transition-all cursor-pointer focus:outline-none focus:ring-1 focus:ring-primary/20 hover:scale-[1.02] shadow-xs h-[92px] w-full ${getStatusColor(
-                        room.status
-                      )}`}
-                    >
-                      <div className="flex justify-between items-center w-full">
-                        <span className="text-[8px] font-bold uppercase tracking-wider opacity-60">
-                          1 King
-                        </span>
-                        <span className="text-[9px] font-extrabold px-1.5 py-0.5 rounded-md bg-black/5 dark:bg-white/10">
-                          {credits} cr
-                        </span>
-                      </div>
-                      <span className="text-lg font-black tracking-tight leading-none mt-1.5 mb-1.5">{room.number}</span>
-                      <div className="flex items-center text-[8px] font-black tracking-wider uppercase gap-1 w-full opacity-80">
-                        <span className={`h-1.5 w-1.5 rounded-full ${
-                          room.status === 'Vacant' ? 'bg-emerald-500' :
-                          room.status === 'Occupied' ? 'bg-blue-500' :
-                          room.status === 'Dirty' ? 'bg-amber-500' : 'bg-red-500'
-                        }`} />
-                        {room.status}
-                      </div>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-          )}
+              {/* 1 King Bed */}
+              {kingRooms.length > 0 && (
+                <div className="space-y-3">
+                  <h3 className="text-xs font-black uppercase tracking-widest text-muted-foreground">
+                    1 King Bed ({kingRooms.length} Rooms)
+                  </h3>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 xl:grid-cols-10 gap-3">
+                    {kingRooms.map((room) => {
+                      const credits = getRoomCredits(room.type, room.status);
+                      return (
+                        <button
+                          key={room.number}
+                          onClick={() => openStatusDialog(room)}
+                          className={`flex flex-col justify-between p-3 rounded-xl border text-left transition-all cursor-pointer focus:outline-none focus:ring-1 focus:ring-primary/20 hover:scale-[1.02] shadow-xs h-[92px] w-full ${getStatusColor(
+                            room.status
+                          )}`}
+                        >
+                          <div className="flex justify-between items-center w-full">
+                            <span className="text-[8px] font-bold uppercase tracking-wider opacity-60">
+                              1 King
+                            </span>
+                            <span className="text-[9px] font-extrabold px-1.5 py-0.5 rounded-md bg-black/5 dark:bg-white/10">
+                              {credits} cr
+                            </span>
+                          </div>
+                          <span className="text-lg font-black tracking-tight leading-none mt-1.5 mb-1.5">{room.number}</span>
+                          <div className="flex items-center text-[8px] font-black tracking-wider uppercase gap-1 w-full opacity-80">
+                            <span className={`h-1.5 w-1.5 rounded-full ${
+                              room.status === 'Vacant' ? 'bg-emerald-500' :
+                              room.status === 'Occupied' ? 'bg-blue-500' :
+                              room.status === 'Dirty' ? 'bg-amber-500' : 'bg-red-500'
+                            }`} />
+                            {room.status}
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
 
-          {/* 1 King ADA */}
-          {adaRooms.length > 0 && (
-            <div className="space-y-3">
-              <h3 className="text-xs font-black uppercase tracking-widest text-muted-foreground">
-                1 King ADA ({adaRooms.length} Rooms)
-              </h3>
-              <div className="grid grid-cols-5 sm:grid-cols-8 md:grid-cols-10 lg:grid-cols-12 xl:grid-cols-16 gap-2.5">
-                {adaRooms.map((room) => {
-                  const credits = getRoomCredits(room.type, room.status);
-                  return (
-                    <button
-                      key={room.number}
-                      onClick={() => openStatusDialog(room)}
-                      className={`flex flex-col justify-between p-3 rounded-xl border text-left transition-all cursor-pointer focus:outline-none focus:ring-1 focus:ring-primary/20 hover:scale-[1.02] shadow-xs h-[92px] w-full ${getStatusColor(
-                        room.status
-                      )}`}
-                    >
-                      <div className="flex justify-between items-center w-full">
-                        <span className="text-[8px] font-bold uppercase tracking-wider opacity-60">
-                          King ADA
-                        </span>
-                        <span className="text-[9px] font-extrabold px-1.5 py-0.5 rounded-md bg-black/5 dark:bg-white/10">
-                          {credits} cr
-                        </span>
-                      </div>
-                      <span className="text-lg font-black tracking-tight leading-none mt-1.5 mb-1.5">{room.number}</span>
-                      <div className="flex items-center text-[8px] font-black tracking-wider uppercase gap-1 w-full opacity-80">
-                        <span className={`h-1.5 w-1.5 rounded-full ${
-                          room.status === 'Vacant' ? 'bg-emerald-500' :
-                          room.status === 'Occupied' ? 'bg-blue-500' :
-                          room.status === 'Dirty' ? 'bg-amber-500' : 'bg-red-500'
-                        }`} />
-                        {room.status}
-                      </div>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-          )}
+              {/* 1 King ADA */}
+              {adaRooms.length > 0 && (
+                <div className="space-y-3">
+                  <h3 className="text-xs font-black uppercase tracking-widest text-muted-foreground">
+                    1 King ADA ({adaRooms.length} Rooms)
+                  </h3>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 xl:grid-cols-10 gap-3">
+                    {adaRooms.map((room) => {
+                      const credits = getRoomCredits(room.type, room.status);
+                      return (
+                        <button
+                          key={room.number}
+                          onClick={() => openStatusDialog(room)}
+                          className={`flex flex-col justify-between p-3 rounded-xl border text-left transition-all cursor-pointer focus:outline-none focus:ring-1 focus:ring-primary/20 hover:scale-[1.02] shadow-xs h-[92px] w-full ${getStatusColor(
+                            room.status
+                          )}`}
+                        >
+                          <div className="flex justify-between items-center w-full">
+                            <span className="text-[8px] font-bold uppercase tracking-wider opacity-60">
+                              King ADA
+                            </span>
+                            <span className="text-[9px] font-extrabold px-1.5 py-0.5 rounded-md bg-black/5 dark:bg-white/10">
+                              {credits} cr
+                            </span>
+                          </div>
+                          <span className="text-lg font-black tracking-tight leading-none mt-1.5 mb-1.5">{room.number}</span>
+                          <div className="flex items-center text-[8px] font-black tracking-wider uppercase gap-1 w-full opacity-80">
+                            <span className={`h-1.5 w-1.5 rounded-full ${
+                              room.status === 'Vacant' ? 'bg-emerald-500' :
+                              room.status === 'Occupied' ? 'bg-blue-500' :
+                              room.status === 'Dirty' ? 'bg-amber-500' : 'bg-red-500'
+                            }`} />
+                            {room.status}
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
 
-          {/* 2 Queen Beds */}
-          {doubleQueenRooms.length > 0 && (
-            <div className="space-y-3">
-              <h3 className="text-xs font-black uppercase tracking-widest text-muted-foreground">
-                2 Queen Beds ({doubleQueenRooms.length} Rooms)
-              </h3>
-              <div className="grid grid-cols-5 sm:grid-cols-8 md:grid-cols-10 lg:grid-cols-12 xl:grid-cols-16 gap-2.5">
-                {doubleQueenRooms.map((room) => {
-                  const credits = getRoomCredits(room.type, room.status);
-                  return (
-                    <button
-                      key={room.number}
-                      onClick={() => openStatusDialog(room)}
-                      className={`flex flex-col justify-between p-3 rounded-xl border text-left transition-all cursor-pointer focus:outline-none focus:ring-1 focus:ring-primary/20 hover:scale-[1.02] shadow-xs h-[92px] w-full ${getStatusColor(
-                        room.status
-                      )}`}
-                    >
-                      <div className="flex justify-between items-center w-full">
-                        <span className="text-[8px] font-bold uppercase tracking-wider opacity-60">
-                          2 Queen
-                        </span>
-                        <span className="text-[9px] font-extrabold px-1.5 py-0.5 rounded-md bg-black/5 dark:bg-white/10">
-                          {credits} cr
-                        </span>
-                      </div>
-                      <span className="text-lg font-black tracking-tight leading-none mt-1.5 mb-1.5">{room.number}</span>
-                      <div className="flex items-center text-[8px] font-black tracking-wider uppercase gap-1 w-full opacity-80">
-                        <span className={`h-1.5 w-1.5 rounded-full ${
-                          room.status === 'Vacant' ? 'bg-emerald-500' :
-                          room.status === 'Occupied' ? 'bg-blue-500' :
-                          room.status === 'Dirty' ? 'bg-amber-500' : 'bg-red-500'
-                        }`} />
-                        {room.status}
-                      </div>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
+              {/* 2 Queen Beds */}
+              {doubleQueenRooms.length > 0 && (
+                <div className="space-y-3">
+                  <h3 className="text-xs font-black uppercase tracking-widest text-muted-foreground">
+                    2 Queen Beds ({doubleQueenRooms.length} Rooms)
+                  </h3>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 xl:grid-cols-10 gap-3">
+                    {doubleQueenRooms.map((room) => {
+                      const credits = getRoomCredits(room.type, room.status);
+                      return (
+                        <button
+                          key={room.number}
+                          onClick={() => openStatusDialog(room)}
+                          className={`flex flex-col justify-between p-3 rounded-xl border text-left transition-all cursor-pointer focus:outline-none focus:ring-1 focus:ring-primary/20 hover:scale-[1.02] shadow-xs h-[92px] w-full ${getStatusColor(
+                            room.status
+                          )}`}
+                        >
+                          <div className="flex justify-between items-center w-full">
+                            <span className="text-[8px] font-bold uppercase tracking-wider opacity-60">
+                              2 Queen
+                            </span>
+                            <span className="text-[9px] font-extrabold px-1.5 py-0.5 rounded-md bg-black/5 dark:bg-white/10">
+                              {credits} cr
+                            </span>
+                          </div>
+                          <span className="text-lg font-black tracking-tight leading-none mt-1.5 mb-1.5">{room.number}</span>
+                          <div className="flex items-center text-[8px] font-black tracking-wider uppercase gap-1 w-full opacity-80">
+                            <span className={`h-1.5 w-1.5 rounded-full ${
+                              room.status === 'Vacant' ? 'bg-emerald-500' :
+                              room.status === 'Occupied' ? 'bg-blue-500' :
+                              room.status === 'Dirty' ? 'bg-amber-500' : 'bg-red-500'
+                            }`} />
+                            {room.status}
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+            </>
           )}
         </div>
       </div>
