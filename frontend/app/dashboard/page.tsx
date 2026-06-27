@@ -47,6 +47,22 @@ interface StatsData {
   weeklyOccupancy: Array<{ day: string; rate: number }>;
 }
 
+const getRoomCredits = (type: string, status: string): number => {
+  if (status === 'Vacant' || status === 'Maintenance') return 0;
+
+  if (status === 'Dirty') {
+    if (type === '1 Queen Bed' || type === '1 King Bed' || type === '1 King ADA') return 35;
+    if (type === '2 Queen Beds') return 45;
+  }
+
+  if (status === 'Occupied') {
+    if (type === '1 Queen Bed' || type === '1 King Bed' || type === '1 King ADA') return 20;
+    if (type === '2 Queen Beds') return 25;
+  }
+
+  return 0;
+};
+
 export default function DashboardPage() {
   const queryClient = useQueryClient();
   const [selectedRoom, setSelectedRoom] = useState<RoomData | null>(null);
@@ -124,6 +140,7 @@ export default function DashboardPage() {
   }
 
   const { stats, rooms, weeklyOccupancy } = data!;
+  const totalCredits = rooms.reduce((acc, room) => acc + getRoomCredits(room.type, room.status), 0);
 
   // Group rooms by category
   const queenRooms = rooms.filter((r) => r.type === '1 Queen Bed');
@@ -199,6 +216,15 @@ export default function DashboardPage() {
                 {stats.maintenanceRooms}
               </span>
             </div>
+            <div className="flex justify-between items-center border-t pt-3 mt-1 font-bold">
+              <span className="text-sm text-foreground flex items-center">
+                <Sparkles className="h-4 w-4 mr-2 text-primary" />
+                Total Task Credits
+              </span>
+              <span className="text-base text-primary">
+                {totalCredits} cr
+              </span>
+            </div>
           </CardContent>
         </Card>
 
@@ -258,20 +284,26 @@ export default function DashboardPage() {
                 1 Queen Bed ({queenRooms.length} Rooms)
               </h3>
               <div className="grid grid-cols-5 sm:grid-cols-8 md:grid-cols-10 lg:grid-cols-12 xl:grid-cols-16 gap-2.5">
-                {queenRooms.map((room) => (
-                  <button
-                    key={room.number}
-                    onClick={() => openStatusDialog(room)}
-                    className={`flex flex-col items-center justify-center p-2 rounded-lg border text-center transition-all cursor-pointer focus:outline-none focus:ring-1 focus:ring-primary/20 hover:scale-[1.02] shadow-none ${getStatusColor(
-                      room.status
-                    )}`}
-                  >
-                    <span className="text-sm font-black tracking-tight">{room.number}</span>
-                    <span className="text-[9px] font-medium tracking-wide uppercase opacity-85 mt-0.5">
-                      {room.status}
-                    </span>
-                  </button>
-                ))}
+                {queenRooms.map((room) => {
+                  const credits = getRoomCredits(room.type, room.status);
+                  return (
+                    <button
+                      key={room.number}
+                      onClick={() => openStatusDialog(room)}
+                      className={`flex flex-col items-center justify-center p-2 rounded-lg border text-center transition-all cursor-pointer focus:outline-none focus:ring-1 focus:ring-primary/20 hover:scale-[1.02] shadow-none relative ${getStatusColor(
+                        room.status
+                      )}`}
+                    >
+                      <span className="absolute -top-1 -right-1 text-[8px] font-black px-1.5 py-0.5 rounded-full bg-slate-900 text-slate-50 dark:bg-slate-50 dark:text-slate-950 shadow-xs border border-border/10">
+                        {credits}
+                      </span>
+                      <span className="text-sm font-black tracking-tight">{room.number}</span>
+                      <span className="text-[9px] font-medium tracking-wide uppercase opacity-85 mt-0.5">
+                        {room.status}
+                      </span>
+                    </button>
+                  );
+                })}
               </div>
             </div>
           )}
@@ -283,20 +315,26 @@ export default function DashboardPage() {
                 1 King Bed ({kingRooms.length} Rooms)
               </h3>
               <div className="grid grid-cols-5 sm:grid-cols-8 md:grid-cols-10 lg:grid-cols-12 xl:grid-cols-16 gap-2.5">
-                {kingRooms.map((room) => (
-                  <button
-                    key={room.number}
-                    onClick={() => openStatusDialog(room)}
-                    className={`flex flex-col items-center justify-center p-2 rounded-lg border text-center transition-all cursor-pointer focus:outline-none focus:ring-1 focus:ring-primary/20 hover:scale-[1.02] shadow-none ${getStatusColor(
-                      room.status
-                    )}`}
-                  >
-                    <span className="text-sm font-black tracking-tight">{room.number}</span>
-                    <span className="text-[9px] font-medium tracking-wide uppercase opacity-85 mt-0.5">
-                      {room.status}
-                    </span>
-                  </button>
-                ))}
+                {kingRooms.map((room) => {
+                  const credits = getRoomCredits(room.type, room.status);
+                  return (
+                    <button
+                      key={room.number}
+                      onClick={() => openStatusDialog(room)}
+                      className={`flex flex-col items-center justify-center p-2 rounded-lg border text-center transition-all cursor-pointer focus:outline-none focus:ring-1 focus:ring-primary/20 hover:scale-[1.02] shadow-none relative ${getStatusColor(
+                        room.status
+                      )}`}
+                    >
+                      <span className="absolute -top-1 -right-1 text-[8px] font-black px-1.5 py-0.5 rounded-full bg-slate-900 text-slate-50 dark:bg-slate-50 dark:text-slate-950 shadow-xs border border-border/10">
+                        {credits}
+                      </span>
+                      <span className="text-sm font-black tracking-tight">{room.number}</span>
+                      <span className="text-[9px] font-medium tracking-wide uppercase opacity-85 mt-0.5">
+                        {room.status}
+                      </span>
+                    </button>
+                  );
+                })}
               </div>
             </div>
           )}
@@ -308,20 +346,26 @@ export default function DashboardPage() {
                 1 King ADA ({adaRooms.length} Rooms)
               </h3>
               <div className="grid grid-cols-5 sm:grid-cols-8 md:grid-cols-10 lg:grid-cols-12 xl:grid-cols-16 gap-2.5">
-                {adaRooms.map((room) => (
-                  <button
-                    key={room.number}
-                    onClick={() => openStatusDialog(room)}
-                    className={`flex flex-col items-center justify-center p-2 rounded-lg border text-center transition-all cursor-pointer focus:outline-none focus:ring-1 focus:ring-primary/20 hover:scale-[1.02] shadow-none ${getStatusColor(
-                      room.status
-                    )}`}
-                  >
-                    <span className="text-sm font-black tracking-tight">{room.number}</span>
-                    <span className="text-[9px] font-medium tracking-wide uppercase opacity-85 mt-0.5">
-                      {room.status}
-                    </span>
-                  </button>
-                ))}
+                {adaRooms.map((room) => {
+                  const credits = getRoomCredits(room.type, room.status);
+                  return (
+                    <button
+                      key={room.number}
+                      onClick={() => openStatusDialog(room)}
+                      className={`flex flex-col items-center justify-center p-2 rounded-lg border text-center transition-all cursor-pointer focus:outline-none focus:ring-1 focus:ring-primary/20 hover:scale-[1.02] shadow-none relative ${getStatusColor(
+                        room.status
+                      )}`}
+                    >
+                      <span className="absolute -top-1 -right-1 text-[8px] font-black px-1.5 py-0.5 rounded-full bg-slate-900 text-slate-50 dark:bg-slate-50 dark:text-slate-950 shadow-xs border border-border/10">
+                        {credits}
+                      </span>
+                      <span className="text-sm font-black tracking-tight">{room.number}</span>
+                      <span className="text-[9px] font-medium tracking-wide uppercase opacity-85 mt-0.5">
+                        {room.status}
+                      </span>
+                    </button>
+                  );
+                })}
               </div>
             </div>
           )}
@@ -333,20 +377,26 @@ export default function DashboardPage() {
                 2 Queen Beds ({doubleQueenRooms.length} Rooms)
               </h3>
               <div className="grid grid-cols-5 sm:grid-cols-8 md:grid-cols-10 lg:grid-cols-12 xl:grid-cols-16 gap-2.5">
-                {doubleQueenRooms.map((room) => (
-                  <button
-                    key={room.number}
-                    onClick={() => openStatusDialog(room)}
-                    className={`flex flex-col items-center justify-center p-2 rounded-lg border text-center transition-all cursor-pointer focus:outline-none focus:ring-1 focus:ring-primary/20 hover:scale-[1.02] shadow-none ${getStatusColor(
-                      room.status
-                    )}`}
-                  >
-                    <span className="text-sm font-black tracking-tight">{room.number}</span>
-                    <span className="text-[9px] font-medium tracking-wide uppercase opacity-85 mt-0.5">
-                      {room.status}
-                    </span>
-                  </button>
-                ))}
+                {doubleQueenRooms.map((room) => {
+                  const credits = getRoomCredits(room.type, room.status);
+                  return (
+                    <button
+                      key={room.number}
+                      onClick={() => openStatusDialog(room)}
+                      className={`flex flex-col items-center justify-center p-2 rounded-lg border text-center transition-all cursor-pointer focus:outline-none focus:ring-1 focus:ring-primary/20 hover:scale-[1.02] shadow-none relative ${getStatusColor(
+                        room.status
+                      )}`}
+                    >
+                      <span className="absolute -top-1 -right-1 text-[8px] font-black px-1.5 py-0.5 rounded-full bg-slate-900 text-slate-50 dark:bg-slate-50 dark:text-slate-950 shadow-xs border border-border/10">
+                        {credits}
+                      </span>
+                      <span className="text-sm font-black tracking-tight">{room.number}</span>
+                      <span className="text-[9px] font-medium tracking-wide uppercase opacity-85 mt-0.5">
+                        {room.status}
+                      </span>
+                    </button>
+                  );
+                })}
               </div>
             </div>
           )}
