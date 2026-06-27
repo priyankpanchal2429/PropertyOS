@@ -17,6 +17,7 @@ import {
 import { errorHandler } from './middleware/error.js';
 import apiRoutes from './routes/index.js';
 import { User } from './models/User.js';
+import { Room } from './models/Room.js';
 import bcrypt from 'bcryptjs';
 
 dotenv.config();
@@ -48,8 +49,64 @@ connectDB().then(async () => {
     } else {
       console.log('[Startup] Seeding bypassed: Admin account already exists.');
     }
+
+    // Auto-seed rooms database on startup if empty
+    const roomCount = await Room.countDocuments();
+    if (roomCount === 0) {
+      const queenRooms = ['116', '118', '221'];
+      const kingRooms = [
+        '102', '103', '108', '114', '200', '201', '202', '203', '204',
+        '205', '213', '214', '216', '217', '218', '220', '223', '224',
+        '228', '229', '230'
+      ];
+      const adaRooms = ['104', '105'];
+      const doubleQueenRooms = [
+        '100', '101', '106', '107', '109', '110', '111', '112', '113',
+        '115', '117', '206', '207', '208', '209', '210', '211', '212',
+        '215', '219', '222', '225', '226', '227'
+      ];
+      const sampleGuests = [
+        'Alice Smith', 'Bob Johnson', 'Charlie Williams', 'Diana Brown',
+        'Ethan Jones', 'Fiona Miller', 'George Davis', 'Hannah Wilson'
+      ];
+
+      const allRoomsToSeed: any[] = [];
+      const getSample = (i: number) => {
+        const mod = i % 10;
+        if (mod === 0 || mod === 3) {
+          return { status: 'Occupied' as const, currentGuestName: sampleGuests[i % sampleGuests.length] };
+        }
+        if (mod === 5) {
+          return { status: 'Dirty' as const, currentGuestName: undefined };
+        }
+        return { status: 'Vacant' as const, currentGuestName: undefined };
+      };
+
+      let idx = 0;
+      queenRooms.forEach((num) => {
+        const { status, currentGuestName } = getSample(idx++);
+        allRoomsToSeed.push({ number: num, type: '1 Queen Bed', status, currentGuestName });
+      });
+      kingRooms.forEach((num) => {
+        const { status, currentGuestName } = getSample(idx++);
+        allRoomsToSeed.push({ number: num, type: '1 King Bed', status, currentGuestName });
+      });
+      adaRooms.forEach((num) => {
+        const { status, currentGuestName } = getSample(idx++);
+        allRoomsToSeed.push({ number: num, type: '1 King ADA', status, currentGuestName });
+      });
+      doubleQueenRooms.forEach((num) => {
+        const { status, currentGuestName } = getSample(idx++);
+        allRoomsToSeed.push({ number: num, type: '2 Queen Beds', status, currentGuestName });
+      });
+
+      await Room.insertMany(allRoomsToSeed);
+      console.log('[Startup] Seeding complete: Seeded 50 default hotel rooms.');
+    } else {
+      console.log('[Startup] Seeding bypassed: Rooms database already seeded.');
+    }
   } catch (seedErr) {
-    console.error('[Startup] Failed to auto-seed default admin:', seedErr);
+    console.error('[Startup] Failed to auto-seed database:', seedErr);
   }
 });
 
