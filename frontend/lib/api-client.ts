@@ -2,9 +2,22 @@ import axios from 'axios';
 
 let accessToken = '';
 
-export const getAccessToken = () => accessToken;
+export const getAccessToken = () => {
+  if (typeof window !== 'undefined') {
+    return accessToken || localStorage.getItem('accessToken') || '';
+  }
+  return accessToken;
+};
+
 export const setAccessToken = (token: string) => {
   accessToken = token;
+  if (typeof window !== 'undefined') {
+    if (token) {
+      localStorage.setItem('accessToken', token);
+    } else {
+      localStorage.removeItem('accessToken');
+    }
+  }
 };
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001/api';

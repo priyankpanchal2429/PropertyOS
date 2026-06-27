@@ -2,7 +2,7 @@
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
-import { apiClient, setAccessToken } from '@/lib/api-client';
+import { apiClient, setAccessToken, getAccessToken } from '@/lib/api-client';
 
 interface User {
   id: string;
@@ -30,16 +30,25 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const checkAuth = async () => {
     try {
-      // Try to silent-refresh first to get an access token
-      const refreshResponse = await apiClient.post('/auth/refresh');
-      const { accessToken } = refreshResponse.data.data;
-      setAccessToken(accessToken);
+      let token = getAccessToken();
 
-      // Fetch user info
-      const meResponse = await apiClient.get('/auth/me');
-      setUser(meResponse.data.data.user);
+      // If we don't have a token in localStorage, try silent refresh
+      if (!token) {
+        const refreshResponse = await apiClient.post('/auth/refresh');
+        const { accessToken } = refreshResponse.data.data;
+        setAccessToken(accessToken);
+        token = accessToken;
+      }
+
+      if (token) {
+        // Fetch and verify user info using current token
+        const meResponse = await apiClient.get('/auth/me');
+        setUser(meResponse.data.data.user);
+      } else {
+        throw new Error('No access token available');
+      }
     } catch (error) {
-      // Session expired or no session cookie exists
+      // Session expired or invalid
       setUser(null);
       setAccessToken('');
     } finally {
