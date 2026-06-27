@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/providers/AuthProvider';
 import { useTheme } from 'next-themes';
 import {
@@ -89,14 +89,39 @@ export default function DashboardLayout({
     },
   ]);
 
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('propertyos_notifications');
+      if (saved) {
+        try {
+          setNotifications(JSON.parse(saved));
+        } catch (e) {
+          console.error('Error parsing notifications from localStorage', e);
+        }
+      }
+    }
+  }, []);
+
   const unreadCount = notifications.filter((n) => !n.read).length;
 
   const markAllRead = () => {
-    setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
+    setNotifications((prev) => {
+      const updated = prev.map((n) => ({ ...n, read: true }));
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('propertyos_notifications', JSON.stringify(updated));
+      }
+      return updated;
+    });
   };
 
   const markRead = (id: number) => {
-    setNotifications((prev) => prev.map((n) => (n.id === id ? { ...n, read: true } : n)));
+    setNotifications((prev) => {
+      const updated = prev.map((n) => (n.id === id ? { ...n, read: true } : n));
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('propertyos_notifications', JSON.stringify(updated));
+      }
+      return updated;
+    });
   };
 
   const handleSearch = (value: string) => {
@@ -351,14 +376,14 @@ export default function DashboardLayout({
                 </Avatar>
               </DropdownMenuTrigger>
               <DropdownMenuContent className="w-56" align="end">
-                <DropdownMenuLabel className="font-normal">
+                <div className="px-2.5 py-2 text-xs text-muted-foreground font-normal">
                   <div className="flex flex-col space-y-1">
-                    <p className="text-sm font-semibold leading-none">{user?.name || 'Administrator'}</p>
+                    <p className="text-sm font-semibold leading-none text-foreground">{user?.name || 'Administrator'}</p>
                     <p className="text-xs leading-none text-muted-foreground">
                       {user?.email || 'admin@propertyos.com'}
                     </p>
                   </div>
-                </DropdownMenuLabel>
+                </div>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem className="text-xs font-medium cursor-pointer">
                   Role: <span className="ml-1 font-semibold text-primary">{user?.role || 'Admin'}</span>

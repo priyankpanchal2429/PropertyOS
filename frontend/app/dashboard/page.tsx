@@ -9,6 +9,7 @@ import {
   Sparkles,
   Search,
   LayoutGrid,
+  Calendar,
 } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -60,6 +61,17 @@ export default function DashboardPage() {
   const queryClient = useQueryClient();
   const [searchQuery, setSearchQuery] = useState('');
   const [isGridOpen, setIsGridOpen] = useState(false);
+  const [animateChart, setAnimateChart] = useState(false);
+  const [occupancyCount, setOccupancyCount] = useState(0);
+
+  React.useEffect(() => {
+    const timer = setTimeout(() => setAnimateChart(true), 150);
+    return () => clearTimeout(timer);
+  }, []);
+
+  // Modal Room Grid Filter States
+  const [activeTab, setActiveTab] = useState<'all' | '1 Queen Bed' | '1 King Bed' | '1 King ADA' | '2 Queen Beds'>('all');
+  const [statusFilter, setStatusFilter] = useState<'all' | 'Vacant' | 'Occupied' | 'Dirty' | 'Maintenance'>('all');
 
   React.useEffect(() => {
     const readSearch = () => {
@@ -90,6 +102,28 @@ export default function DashboardPage() {
     refetchInterval: 10000, // Auto-refresh every 10s for real-time occupancy updates
   });
 
+  const targetRate = data?.stats?.occupancyRate || 0;
+
+  React.useEffect(() => {
+    if (!data) return;
+    let start = 0;
+    const end = targetRate;
+    if (start === end) {
+      setOccupancyCount(end);
+      return;
+    }
+    const totalDuration = 1000;
+    const incrementTime = Math.max(Math.floor(totalDuration / end), 15);
+    const timer = setInterval(() => {
+      start += 1;
+      setOccupancyCount(start);
+      if (start >= end) {
+        clearInterval(timer);
+      }
+    }, incrementTime);
+    return () => clearInterval(timer);
+  }, [targetRate, !!data]);
+
   if (isLoading) {
     return <DashboardSkeleton />;
   }
@@ -112,25 +146,26 @@ export default function DashboardPage() {
   const { stats, rooms, weeklyOccupancy } = data!;
   const totalCredits = rooms.reduce((acc, room) => acc + getRoomCredits(room.type, room.status), 0);
 
-  const filterRooms = (list: RoomData[]) => {
-    if (!searchQuery) return list;
-    const q = searchQuery.toLowerCase().trim();
-    return list.filter(
-      (r) =>
+  // Apply filters dynamically
+  const filteredRooms = rooms
+    .filter((r) => {
+      if (!searchQuery) return true;
+      const q = searchQuery.toLowerCase().trim();
+      return (
         r.number.includes(q) ||
         r.status.toLowerCase().includes(q) ||
         r.type.toLowerCase().includes(q) ||
         r.currentGuestName?.toLowerCase().includes(q)
-    );
-  };
-
-  // Group rooms by category and apply search query filters
-  const queenRooms = filterRooms(rooms.filter((r) => r.type === '1 Queen Bed'));
-  const kingRooms = filterRooms(rooms.filter((r) => r.type === '1 King Bed'));
-  const adaRooms = filterRooms(rooms.filter((r) => r.type === '1 King ADA'));
-  const doubleQueenRooms = filterRooms(rooms.filter((r) => r.type === '2 Queen Beds'));
-
-  const totalFiltered = queenRooms.length + kingRooms.length + adaRooms.length + doubleQueenRooms.length;
+      );
+    })
+    .filter((r) => {
+      if (activeTab === 'all') return true;
+      return r.type === activeTab;
+    })
+    .filter((r) => {
+      if (statusFilter === 'all') return true;
+      return r.status === statusFilter;
+    });
 
   const getStatusColor = (status: RoomData['status']) => {
     switch (status) {
@@ -146,7 +181,7 @@ export default function DashboardPage() {
   };
 
   return (
-    <div className="space-y-8 max-w-7xl mx-auto">
+    <div className="space-y-8 max-w-[92rem] mx-auto">
       {/* Title */}
       <div className="flex flex-col space-y-1">
         <h1 className="text-2xl font-bold tracking-tight text-foreground">Property Control Panel</h1>
@@ -155,59 +190,78 @@ export default function DashboardPage() {
         </p>
       </div>
 
-      {/* Top Section: stats, weekly occupancy, and Room Grid Entry Card */}
+      {/* Top Section: Merged Console Card and Weekly Occupancy Visualizer */}
       <div className="grid gap-6 md:grid-cols-3">
-        {/* Real-time stats */}
-        <Card className="border shadow-none bg-card flex flex-col justify-between">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-base font-semibold">Today's Status Summary</CardTitle>
-            <CardDescription>Live count of rooms by operational state</CardDescription>
+        {/* Merged Card: Property Overview */}
+        <Card 
+          onClick={() => setIsGridOpen(true)}
+          className="border shadow-none bg-card flex flex-col justify-between cursor-pointer hover:border-primary/40 transition-all hover:shadow-xs group md:col-span-2"
+        >
+          <CardHeader className="pb-4">
+            <div className="flex justify-between items-center">
+              <div>
+                <CardTitle className="text-base font-semibold group-hover:text-primary transition-colors flex items-center gap-1.5">
+                  <LayoutGrid className="h-4.5 w-4.5 text-primary" />
+                  Property Overview
+                </CardTitle>
+                <CardDescription>Real-time room status stats and credit allocations</CardDescription>
+              </div>
+              <span className="text-xs font-bold text-primary bg-primary/5 px-2.5 py-1 rounded-full group-hover:bg-primary/10 transition-colors">
+                Open Status Grid →
+              </span>
+            </div>
           </CardHeader>
-          <CardContent className="space-y-4 flex-1 flex flex-col justify-center">
-            <div className="flex justify-between items-center border-b pb-2">
-              <span className="text-sm text-muted-foreground flex items-center">
-                <span className="h-2 w-2 rounded-full bg-emerald-500 mr-2" />
-                Vacant Rooms
-              </span>
-              <span className="font-semibold text-emerald-600 dark:text-emerald-400">
-                {stats.vacantRooms}
-              </span>
+          <CardContent className="flex-1 flex flex-col justify-between space-y-6 pb-6">
+            {/* Stat Cards Grid */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              {/* Vacant Card */}
+              <div className="p-3.5 rounded-xl border bg-emerald-500/5 border-emerald-500/10 flex flex-col justify-between h-[80px]">
+                <p className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider">Vacant</p>
+                <div className="flex items-baseline space-x-1 mt-1">
+                  <span className="text-2xl font-black text-emerald-700 dark:text-emerald-300">{stats.vacantRooms}</span>
+                  <span className="text-[10px] text-emerald-600/70 font-semibold">/50</span>
+                </div>
+              </div>
+
+              {/* Occupied Card */}
+              <div className="p-3.5 rounded-xl border bg-blue-500/5 border-blue-500/10 flex flex-col justify-between h-[80px]">
+                <p className="text-[10px] font-bold text-blue-600 dark:text-blue-400 uppercase tracking-wider">Occupied</p>
+                <div className="flex items-baseline space-x-1 mt-1">
+                  <span className="text-2xl font-black text-blue-700 dark:text-blue-300">{stats.occupiedRooms}</span>
+                  <span className="text-[10px] text-blue-600/70 font-semibold">/50</span>
+                </div>
+              </div>
+
+              {/* Dirty Card */}
+              <div className="p-3.5 rounded-xl border bg-amber-500/5 border-amber-500/10 flex flex-col justify-between h-[80px]">
+                <p className="text-[10px] font-bold text-amber-600 dark:text-amber-400 uppercase tracking-wider">Dirty</p>
+                <div className="flex items-baseline space-x-1 mt-1">
+                  <span className="text-2xl font-black text-amber-700 dark:text-amber-300">{stats.dirtyRooms}</span>
+                  <span className="text-[10px] text-amber-600/70 font-semibold">/50</span>
+                </div>
+              </div>
+
+              {/* Housekeeping Credits Card */}
+              <div className="p-3.5 rounded-xl border bg-indigo-500/5 border-indigo-500/10 flex flex-col justify-between h-[80px]">
+                <p className="text-[10px] font-bold text-indigo-600 dark:text-indigo-400 uppercase tracking-wider flex items-center gap-1">
+                  <Sparkles className="h-3 w-3 text-indigo-500" />
+                  Task Credits
+                </p>
+                <div className="flex items-baseline mt-1">
+                  <span className="text-2xl font-black text-indigo-700 dark:text-indigo-300">{totalCredits}</span>
+                  <span className="text-[10px] text-indigo-600/70 font-semibold ml-1">cr</span>
+                </div>
+              </div>
             </div>
-            <div className="flex justify-between items-center border-b pb-2">
-              <span className="text-sm text-muted-foreground flex items-center">
-                <span className="h-2 w-2 rounded-full bg-blue-500 mr-2" />
-                Occupied Rooms
-              </span>
-              <span className="font-semibold text-blue-600 dark:text-blue-400">
-                {stats.occupiedRooms}
-              </span>
-            </div>
-            <div className="flex justify-between items-center border-b pb-2">
-              <span className="text-sm text-muted-foreground flex items-center">
-                <span className="h-2 w-2 rounded-full bg-amber-500 mr-2" />
-                Dirty / Checkout
-              </span>
-              <span className="font-semibold text-amber-600 dark:text-amber-400">
-                {stats.dirtyRooms}
-              </span>
-            </div>
-            <div className="flex justify-between items-center pb-2">
-              <span className="text-sm text-muted-foreground flex items-center">
-                <span className="h-2 w-2 rounded-full bg-red-500 mr-2" />
-                Out of Order
-              </span>
-              <span className="font-semibold text-red-600 dark:text-red-400">
-                {stats.maintenanceRooms}
-              </span>
-            </div>
-            <div className="flex justify-between items-center border-t pt-3 mt-1 font-bold">
-              <span className="text-sm text-foreground flex items-center">
-                <Sparkles className="h-4 w-4 mr-2 text-primary" />
-                Total Task Credits
-              </span>
-              <span className="text-base text-primary">
-                {totalCredits} cr
-              </span>
+
+            {/* Bottom Actions Banner */}
+            <div className="flex justify-between items-center p-3 border rounded-xl bg-muted/20 gap-3">
+              <div className="text-xs text-muted-foreground font-medium">
+                Click anywhere on this card to search, filter, and inspect the room statuses.
+              </div>
+              <div className="text-xs font-bold text-primary flex items-center gap-1 group-hover:translate-x-1 transition-transform">
+                Inspect 50 Rooms →
+              </div>
             </div>
           </CardContent>
         </Card>
@@ -217,83 +271,78 @@ export default function DashboardPage() {
           <CardHeader className="pb-3">
             <div className="flex justify-between items-center">
               <div>
-                <CardTitle className="text-base font-semibold">Weekly Occupancy Rate</CardTitle>
-                <CardDescription>Capacity usage Mon - Sun</CardDescription>
+                <CardTitle className="text-base font-semibold flex items-center gap-1.5">
+                  <Calendar className="h-4.5 w-4.5 text-primary" />
+                  Weekly Occupancy
+                </CardTitle>
+                <CardDescription>Capacity usage from Mon to Sun</CardDescription>
               </div>
               <div className="text-right">
-                <p className="text-2xl font-black text-primary">{stats.occupancyRate}%</p>
+                <p className="text-2xl font-black text-primary transition-all duration-300">{occupancyCount}%</p>
+                <p className="text-[9px] uppercase font-bold text-muted-foreground tracking-wider">Today</p>
               </div>
             </div>
           </CardHeader>
-          <CardContent className="flex-1 flex flex-col justify-center pb-5">
-            {/* Horizontal Bar Chart (Mon - Sun) */}
-            <div className="space-y-2.5 py-1">
-              {weeklyOccupancy.map((dayData) => (
-                <div key={dayData.day} className="flex items-center space-x-3">
-                  <span className="text-[10px] font-bold text-muted-foreground w-6">
-                    {dayData.day}
-                  </span>
-                  <div className="flex-1 h-3 bg-muted rounded-full overflow-hidden relative border border-border/40">
-                    <div
-                      className={`h-full transition-all duration-500 rounded-full ${
-                        dayData.day === 'Sun' ? 'bg-primary' : 'bg-primary/70'
-                      }`}
-                      style={{ width: `${dayData.rate}%` }}
-                    />
-                    <span className="absolute inset-y-0 right-1.5 flex items-center text-[8px] font-black text-foreground/80">
+          <CardContent className="flex-1 flex flex-col justify-end pb-6 pt-2">
+            {/* Custom Vertical Bar Chart */}
+            <div className="flex items-end justify-between h-[160px] w-full gap-2.5 sm:gap-3.5 pt-4">
+              {weeklyOccupancy.map((dayData, index) => {
+                const isToday = dayData.day === 'Sun'; // Sunday is current day in our seed stats
+                return (
+                  <div key={dayData.day} className="flex flex-col items-center flex-1 h-full justify-end group/bar">
+                    {/* Percentage Value */}
+                    <span className={`text-[10px] font-black leading-none mb-1.5 transition-all duration-500 flex items-center gap-1 ${
+                      animateChart ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-1'
+                    } ${
+                      isToday ? 'text-primary animate-pulse' : 'text-muted-foreground group-hover/bar:text-foreground'
+                    }`}
+                    style={{ transitionDelay: `${index * 80 + 300}ms` }}
+                    >
                       {dayData.rate}%
+                      {isToday && (
+                        <span className="relative flex h-1.5 w-1.5">
+                          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
+                          <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-primary"></span>
+                        </span>
+                      )}
+                    </span>
+
+                    {/* Bar Track */}
+                    <div className="w-full bg-muted/30 hover:bg-muted/50 rounded-t-md relative flex flex-col justify-end overflow-hidden border border-border/20 transition-all h-[120px]">
+                      <div
+                        className={`w-full rounded-t-sm transition-all duration-1000 ease-out ${
+                          isToday 
+                            ? 'bg-primary shadow-[0_0_8px_rgba(59,130,246,0.4)]' 
+                            : 'bg-primary/35 group-hover/bar:bg-primary/50'
+                        }`}
+                        style={{ 
+                          height: animateChart ? `${dayData.rate}%` : '0%',
+                          transitionDelay: `${index * 80}ms`
+                        }}
+                      />
+                    </div>
+
+                    {/* Day Label */}
+                    <span className={`text-[9px] font-extrabold uppercase tracking-wider mt-2 transition-colors ${
+                      isToday ? 'text-primary font-black' : 'text-muted-foreground group-hover/bar:text-foreground'
+                    }`}>
+                      {dayData.day}
                     </span>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </CardContent>
-        </Card>
-
-        {/* Active Room Grid Card */}
-        <Card
-          onClick={() => setIsGridOpen(true)}
-          className="border shadow-none bg-card flex flex-col justify-between cursor-pointer hover:border-primary/40 transition-all hover:shadow-xs group"
-        >
-          <CardHeader className="pb-3">
-            <div className="flex justify-between items-start">
-              <div>
-                <CardTitle className="text-base font-semibold group-hover:text-primary transition-colors flex items-center gap-1.5">
-                  <LayoutGrid className="h-4 w-4 text-primary" />
-                  Active Room Grid
-                </CardTitle>
-                <CardDescription>Hotel room grid status overview</CardDescription>
-              </div>
-            </div>
-          </CardHeader>
-          <CardContent className="space-y-4 flex-1 flex flex-col justify-center">
-            <p className="text-xs text-muted-foreground">
-              Monitor active clean statuses, credits, and occupancy states for all 50 rooms.
-            </p>
-            <div className="grid grid-cols-2 gap-2 text-xs">
-              <div className="bg-muted/40 p-2.5 rounded-lg border border-border/30">
-                <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Total Rooms</p>
-                <p className="text-lg font-black text-foreground mt-0.5">{stats.totalRooms}</p>
-              </div>
-              <div className="bg-muted/40 p-2.5 rounded-lg border border-border/30">
-                <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Daily Credits</p>
-                <p className="text-lg font-black text-primary mt-0.5">{totalCredits} cr</p>
-              </div>
-            </div>
-          </CardContent>
-          <div className="px-6 pb-6 pt-0 flex items-center text-xs font-bold text-primary group-hover:underline">
-            Open Room Status Grid →
-          </div>
         </Card>
       </div>
 
       {/* Dialog containing the full Room Grid status console */}
       <Dialog open={isGridOpen} onOpenChange={setIsGridOpen}>
-        <DialogContent className="max-w-4xl md:max-w-6xl lg:max-w-7xl max-h-[85vh] overflow-y-auto bg-card border rounded-2xl shadow-2xl p-6">
-          <DialogHeader className="border-b pb-4 mb-4">
+        <DialogContent className="max-w-4xl md:max-w-5xl lg:max-w-6xl max-h-[85vh] overflow-y-auto bg-card border rounded-2xl shadow-2xl p-6 flex flex-col gap-6">
+          <DialogHeader className="border-b pb-4">
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
               <div>
-                <DialogTitle className="text-xl font-bold flex items-center gap-2">
+                <DialogTitle className="text-lg font-bold flex items-center gap-2 text-foreground">
                   <Home className="h-5 w-5 text-primary" />
                   Hotel Room Status Console
                 </DialogTitle>
@@ -310,17 +359,75 @@ export default function DashboardPage() {
             </div>
           </DialogHeader>
 
-          {/* Full Grids Section */}
-          <div className="space-y-8">
-            {searchQuery && totalFiltered === 0 ? (
-              <div className="text-center py-12 border border-dashed rounded-xl bg-muted/20 flex flex-col items-center justify-center space-y-2">
-                <Search className="h-8 w-8 text-muted-foreground/60" />
-                <p className="text-sm font-semibold text-muted-foreground">No rooms found matching "{searchQuery}"</p>
+          {/* Filtering Console Tools */}
+          <div className="flex flex-col gap-3.5 border-b pb-4">
+            {/* Filter 1: Room Type (Tabs) */}
+            <div className="flex flex-col gap-1.5">
+              <span className="text-[9px] font-black uppercase tracking-widest text-muted-foreground">Filter by Room Type</span>
+              <div className="flex flex-wrap gap-1.5">
+                {[
+                  { label: 'All Rooms', value: 'all' },
+                  { label: '1 Queen Bed', value: '1 Queen Bed' },
+                  { label: '1 King Bed', value: '1 King Bed' },
+                  { label: '1 King ADA', value: '1 King ADA' },
+                  { label: '2 Queen Beds', value: '2 Queen Beds' },
+                ].map((tab) => (
+                  <button
+                    key={tab.value}
+                    onClick={() => setActiveTab(tab.value as any)}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer border ${
+                      activeTab === tab.value
+                        ? 'bg-primary text-primary-foreground border-primary shadow-xs'
+                        : 'bg-muted/40 hover:bg-muted text-muted-foreground border-border/50'
+                    }`}
+                  >
+                    {tab.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Filter 2: Operational Status */}
+            <div className="flex flex-col gap-1.5">
+              <span className="text-[9px] font-black uppercase tracking-widest text-muted-foreground">Filter by Status</span>
+              <div className="flex flex-wrap gap-1.5">
+                {[
+                  { label: 'All Statuses', value: 'all', dot: 'bg-muted-foreground/60' },
+                  { label: 'Vacant', value: 'Vacant', dot: 'bg-emerald-500' },
+                  { label: 'Occupied', value: 'Occupied', dot: 'bg-blue-500' },
+                  { label: 'Dirty', value: 'Dirty', dot: 'bg-amber-500' },
+                  { label: 'Maintenance', value: 'Maintenance', dot: 'bg-red-500' },
+                ].map((f) => (
+                  <button
+                    key={f.value}
+                    onClick={() => setStatusFilter(f.value as any)}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer border flex items-center gap-1.5 ${
+                      statusFilter === f.value
+                        ? 'bg-foreground text-background border-foreground shadow-xs'
+                        : 'bg-muted/40 hover:bg-muted text-muted-foreground border-border/50'
+                    }`}
+                  >
+                    <span className={`h-1.5 w-1.5 rounded-full ${f.dot}`} />
+                    {f.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* Unified Dynamic Grid */}
+          <div className="flex-1 min-h-[250px]">
+            {filteredRooms.length === 0 ? (
+              <div className="text-center py-16 border border-dashed rounded-xl bg-muted/10 flex flex-col items-center justify-center space-y-2">
+                <Search className="h-7 w-7 text-muted-foreground/50" />
+                <p className="text-xs font-bold text-muted-foreground">No rooms match your active filters</p>
                 <Button
-                  variant="link"
+                  variant="outline"
                   size="sm"
-                  className="text-primary font-semibold cursor-pointer"
+                  className="mt-1 h-8 text-xs font-bold cursor-pointer"
                   onClick={() => {
+                    setActiveTab('all');
+                    setStatusFilter('all');
                     if (typeof window !== 'undefined') {
                       const url = new URL(window.location.href);
                       url.searchParams.delete('search');
@@ -331,171 +438,50 @@ export default function DashboardPage() {
                     }
                   }}
                 >
-                  Clear Search Filter
+                  Reset All Filters
                 </Button>
               </div>
             ) : (
-              <>
-                {/* 1 Queen Bed */}
-                {queenRooms.length > 0 && (
-                  <div className="space-y-3">
-                    <h3 className="text-xs font-black uppercase tracking-widest text-muted-foreground">
-                      1 Queen Bed ({queenRooms.length} Rooms)
-                    </h3>
-                    <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 xl:grid-cols-10 gap-3">
-                      {queenRooms.map((room) => {
-                        const credits = getRoomCredits(room.type, room.status);
-                        return (
-                          <div
-                            key={room.number}
-                            className={`flex flex-col justify-between p-3 rounded-xl border text-left transition-all shadow-xs h-[92px] w-full ${getStatusColor(
-                              room.status
-                            )}`}
-                          >
-                            <div className="flex justify-between items-center w-full">
-                              <span className="text-[8px] font-bold uppercase tracking-wider opacity-60">
-                                1 Queen
-                              </span>
-                              <span className="text-[9px] font-extrabold px-1.5 py-0.5 rounded-md bg-black/5 dark:bg-white/10">
-                                {credits} cr
-                              </span>
-                            </div>
-                            <span className="text-lg font-black tracking-tight leading-none mt-1.5 mb-1.5">{room.number}</span>
-                            <div className="flex items-center text-[8px] font-black tracking-wider uppercase gap-1 w-full opacity-80">
-                              <span className={`h-1.5 w-1.5 rounded-full ${
-                                room.status === 'Vacant' ? 'bg-emerald-500' :
-                                room.status === 'Occupied' ? 'bg-blue-500' :
-                                room.status === 'Dirty' ? 'bg-amber-500' : 'bg-red-500'
-                              }`} />
-                              {room.status}
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-                )}
+              <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-8 gap-2.5">
+                {filteredRooms.map((room) => {
+                  const credits = getRoomCredits(room.type, room.status);
+                  return (
+                    <div
+                      key={room.number}
+                      className={`flex justify-between items-center px-3 py-2 rounded-xl border transition-all shadow-2xs h-[56px] w-full ${getStatusColor(
+                        room.status
+                      )}`}
+                    >
+                      {/* Left: Room Number and type shorthand */}
+                      <div>
+                        <span className="text-sm font-black tracking-tight leading-none text-foreground">
+                          {room.number}
+                        </span>
+                        <span className="text-[8px] font-bold uppercase tracking-wider opacity-60 block mt-0.5">
+                          {room.type === '1 Queen Bed' ? '1 Queen' :
+                           room.type === '1 King Bed' ? '1 King' :
+                           room.type === '1 King ADA' ? 'King ADA' : '2 Queen'}
+                        </span>
+                      </div>
 
-                {/* 1 King Bed */}
-                {kingRooms.length > 0 && (
-                  <div className="space-y-3">
-                    <h3 className="text-xs font-black uppercase tracking-widest text-muted-foreground">
-                      1 King Bed ({kingRooms.length} Rooms)
-                    </h3>
-                    <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 xl:grid-cols-10 gap-3">
-                      {kingRooms.map((room) => {
-                        const credits = getRoomCredits(room.type, room.status);
-                        return (
-                          <div
-                            key={room.number}
-                            className={`flex flex-col justify-between p-3 rounded-xl border text-left transition-all shadow-xs h-[92px] w-full ${getStatusColor(
-                              room.status
-                            )}`}
-                          >
-                            <div className="flex justify-between items-center w-full">
-                              <span className="text-[8px] font-bold uppercase tracking-wider opacity-60">
-                                1 King
-                              </span>
-                              <span className="text-[9px] font-extrabold px-1.5 py-0.5 rounded-md bg-black/5 dark:bg-white/10">
-                                {credits} cr
-                              </span>
-                            </div>
-                            <span className="text-lg font-black tracking-tight leading-none mt-1.5 mb-1.5">{room.number}</span>
-                            <div className="flex items-center text-[8px] font-black tracking-wider uppercase gap-1 w-full opacity-80">
-                              <span className={`h-1.5 w-1.5 rounded-full ${
-                                room.status === 'Vacant' ? 'bg-emerald-500' :
-                                room.status === 'Occupied' ? 'bg-blue-500' :
-                                room.status === 'Dirty' ? 'bg-amber-500' : 'bg-red-500'
-                              }`} />
-                              {room.status}
-                            </div>
-                          </div>
-                        );
-                      })}
+                      {/* Right: Credits and status indicator */}
+                      <div className="flex flex-col items-end gap-1">
+                        <span className="text-[8px] font-extrabold px-1.5 py-0.5 rounded-md bg-black/5 dark:bg-white/10 leading-none">
+                          {credits} cr
+                        </span>
+                        <span className="text-[8px] font-black uppercase tracking-wider opacity-90 flex items-center gap-1 leading-none">
+                          <span className={`h-1.5 w-1.5 rounded-full ${
+                            room.status === 'Vacant' ? 'bg-emerald-500' :
+                            room.status === 'Occupied' ? 'bg-blue-500' :
+                            room.status === 'Dirty' ? 'bg-amber-500' : 'bg-red-500'
+                          }`} />
+                          {room.status}
+                        </span>
+                      </div>
                     </div>
-                  </div>
-                )}
-
-                {/* 1 King ADA */}
-                {adaRooms.length > 0 && (
-                  <div className="space-y-3">
-                    <h3 className="text-xs font-black uppercase tracking-widest text-muted-foreground">
-                      1 King ADA ({adaRooms.length} Rooms)
-                    </h3>
-                    <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 xl:grid-cols-10 gap-3">
-                      {adaRooms.map((room) => {
-                        const credits = getRoomCredits(room.type, room.status);
-                        return (
-                          <div
-                            key={room.number}
-                            className={`flex flex-col justify-between p-3 rounded-xl border text-left transition-all shadow-xs h-[92px] w-full ${getStatusColor(
-                              room.status
-                            )}`}
-                          >
-                            <div className="flex justify-between items-center w-full">
-                              <span className="text-[8px] font-bold uppercase tracking-wider opacity-60">
-                                King ADA
-                              </span>
-                              <span className="text-[9px] font-extrabold px-1.5 py-0.5 rounded-md bg-black/5 dark:bg-white/10">
-                                {credits} cr
-                              </span>
-                            </div>
-                            <span className="text-lg font-black tracking-tight leading-none mt-1.5 mb-1.5">{room.number}</span>
-                            <div className="flex items-center text-[8px] font-black tracking-wider uppercase gap-1 w-full opacity-80">
-                              <span className={`h-1.5 w-1.5 rounded-full ${
-                                room.status === 'Vacant' ? 'bg-emerald-500' :
-                                room.status === 'Occupied' ? 'bg-blue-500' :
-                                room.status === 'Dirty' ? 'bg-amber-500' : 'bg-red-500'
-                              }`} />
-                              {room.status}
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-                )}
-
-                {/* 2 Queen Beds */}
-                {doubleQueenRooms.length > 0 && (
-                  <div className="space-y-3">
-                    <h3 className="text-xs font-black uppercase tracking-widest text-muted-foreground">
-                      2 Queen Beds ({doubleQueenRooms.length} Rooms)
-                    </h3>
-                    <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 xl:grid-cols-10 gap-3">
-                      {doubleQueenRooms.map((room) => {
-                        const credits = getRoomCredits(room.type, room.status);
-                        return (
-                          <div
-                            key={room.number}
-                            className={`flex flex-col justify-between p-3 rounded-xl border text-left transition-all shadow-xs h-[92px] w-full ${getStatusColor(
-                              room.status
-                            )}`}
-                          >
-                            <div className="flex justify-between items-center w-full">
-                              <span className="text-[8px] font-bold uppercase tracking-wider opacity-60">
-                                2 Queen
-                              </span>
-                              <span className="text-[9px] font-extrabold px-1.5 py-0.5 rounded-md bg-black/5 dark:bg-white/10">
-                                {credits} cr
-                              </span>
-                            </div>
-                            <span className="text-lg font-black tracking-tight leading-none mt-1.5 mb-1.5">{room.number}</span>
-                            <div className="flex items-center text-[8px] font-black tracking-wider uppercase gap-1 w-full opacity-80">
-                              <span className={`h-1.5 w-1.5 rounded-full ${
-                                room.status === 'Vacant' ? 'bg-emerald-500' :
-                                room.status === 'Occupied' ? 'bg-blue-500' :
-                                room.status === 'Dirty' ? 'bg-amber-500' : 'bg-red-500'
-                              }`} />
-                              {room.status}
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-                )}
-              </>
+                  );
+                })}
+              </div>
             )}
           </div>
         </DialogContent>
@@ -507,54 +493,51 @@ export default function DashboardPage() {
 // Skeleton Loader
 function DashboardSkeleton() {
   return (
-    <div className="space-y-8 max-w-7xl mx-auto animate-pulse">
+    <div className="space-y-8 max-w-[92rem] mx-auto animate-pulse">
       <div className="space-y-2">
         <Skeleton className="h-7 w-48" />
         <Skeleton className="h-4 w-96" />
       </div>
 
       <div className="grid gap-6 md:grid-cols-3">
-        <Card className="border shadow-none bg-card">
-          <CardHeader>
-            <Skeleton className="h-5 w-36 mb-1" />
-            <Skeleton className="h-3.5 w-48" />
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {[...Array(5)].map((_, i) => (
-              <div key={i} className="flex justify-between items-center border-b pb-2 last:border-0 last:pb-0">
-                <Skeleton className="h-4 w-24" />
-                <Skeleton className="h-4 w-6" />
-              </div>
-            ))}
-          </CardContent>
-        </Card>
-
-        <Card className="border shadow-none bg-card">
+        <Card className="border shadow-none bg-card md:col-span-2">
           <CardHeader>
             <Skeleton className="h-5 w-40 mb-1" />
             <Skeleton className="h-3.5 w-60" />
           </CardHeader>
-          <CardContent className="space-y-3.5">
-            {[...Array(7)].map((_, i) => (
-              <div key={i} className="flex items-center space-x-4">
-                <Skeleton className="h-3 w-8" />
-                <Skeleton className="h-3.5 flex-1" />
+          <CardContent className="grid gap-6 md:grid-cols-2">
+            <div className="space-y-3">
+              {[...Array(4)].map((_, i) => (
+                <div key={i} className="flex justify-between">
+                  <Skeleton className="h-4 w-20" />
+                  <Skeleton className="h-4 w-6" />
+                </div>
+              ))}
+            </div>
+            <div className="space-y-3">
+              <Skeleton className="h-10 w-full" />
+              <div className="grid grid-cols-2 gap-2">
+                <Skeleton className="h-10 w-full" />
+                <Skeleton className="h-10 w-full" />
               </div>
-            ))}
+            </div>
           </CardContent>
         </Card>
 
-        <Card className="border shadow-none bg-card">
+        {/* Skeleton for vertical columns chart */}
+        <Card className="border shadow-none bg-card flex flex-col justify-between">
           <CardHeader>
             <Skeleton className="h-5 w-36 mb-1" />
             <Skeleton className="h-3.5 w-48" />
           </CardHeader>
-          <CardContent className="space-y-4">
-            <Skeleton className="h-10 w-full rounded-lg" />
-            <div className="grid grid-cols-2 gap-2">
-              <Skeleton className="h-12 w-full rounded-lg" />
-              <Skeleton className="h-12 w-full rounded-lg" />
-            </div>
+          <CardContent className="flex items-end justify-between h-[160px] gap-2.5 pt-4">
+            {[...Array(7)].map((_, i) => (
+              <div key={i} className="flex flex-col items-center flex-1 space-y-2 h-full justify-end">
+                <Skeleton className="h-3 w-6" />
+                <Skeleton className="w-full bg-muted rounded-t-md flex-1" />
+                <Skeleton className="h-3 w-6" />
+              </div>
+            ))}
           </CardContent>
         </Card>
       </div>
