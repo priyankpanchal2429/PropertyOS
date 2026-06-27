@@ -10,6 +10,18 @@ import {
   Search,
   LayoutGrid,
   Calendar,
+  Users,
+  Clock,
+  Building,
+  Bed,
+  BedDouble,
+  Crown,
+  Accessibility,
+  CircleDot,
+  DoorOpen,
+  UserCheck,
+  SprayCan,
+  Wrench,
 } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -41,6 +53,13 @@ interface StatsData {
   weeklyOccupancy: Array<{ day: string; rate: number }>;
 }
 
+interface StaffMember {
+  name: string;
+  initials: string;
+  color: string;
+  availability: { [key: string]: boolean };
+}
+
 const getRoomCredits = (type: string, status: string): number => {
   if (status === 'Vacant' || status === 'Maintenance') return 0;
 
@@ -64,14 +83,27 @@ export default function DashboardPage() {
   const [animateChart, setAnimateChart] = useState(false);
   const [occupancyCount, setOccupancyCount] = useState(0);
 
-  React.useEffect(() => {
-    const timer = setTimeout(() => setAnimateChart(true), 150);
-    return () => clearTimeout(timer);
-  }, []);
+  // Housekeeper Staff List with Availability Toggles (Default: available 7 days)
+  const [staff, setStaff] = useState<StaffMember[]>([
+    { name: 'Ramona', initials: 'RM', color: 'bg-rose-500/10 text-rose-700 border-rose-500/20 dark:bg-rose-500/20 dark:text-rose-300', availability: { Mon: true, Tue: true, Wed: true, Thu: true, Fri: true, Sat: true, Sun: true } },
+    { name: 'Tania', initials: 'TN', color: 'bg-amber-500/10 text-amber-700 border-amber-500/20 dark:bg-amber-500/20 dark:text-amber-300', availability: { Mon: true, Tue: true, Wed: true, Thu: true, Fri: true, Sat: true, Sun: true } },
+    { name: 'Gladys', initials: 'GD', color: 'bg-emerald-500/10 text-emerald-700 border-emerald-500/20 dark:bg-emerald-500/20 dark:text-emerald-300', availability: { Mon: true, Tue: true, Wed: true, Thu: true, Fri: true, Sat: true, Sun: true } },
+    { name: 'Zuli', initials: 'ZL', color: 'bg-sky-500/10 text-sky-700 border-sky-500/20 dark:bg-sky-500/20 dark:text-sky-300', availability: { Mon: true, Tue: true, Wed: true, Thu: true, Fri: true, Sat: true, Sun: true } },
+    { name: 'Eucaria', initials: 'EC', color: 'bg-indigo-500/10 text-indigo-700 border-indigo-500/20 dark:bg-indigo-500/20 dark:text-indigo-300', availability: { Mon: true, Tue: true, Wed: true, Thu: true, Fri: true, Sat: true, Sun: true } },
+    { name: 'Jeimi', initials: 'JM', color: 'bg-purple-500/10 text-purple-700 border-purple-500/20 dark:bg-purple-500/20 dark:text-purple-300', availability: { Mon: true, Tue: true, Wed: true, Thu: true, Fri: true, Sat: true, Sun: true } },
+  ]);
+
+  // Track hovered housekeeper to highlight their shifts in weekly grid
+  const [hoveredStaff, setHoveredStaff] = useState<string | null>(null);
 
   // Modal Room Grid Filter States
   const [activeTab, setActiveTab] = useState<'all' | '1 Queen Bed' | '1 King Bed' | '1 King ADA' | '2 Queen Beds'>('all');
   const [statusFilter, setStatusFilter] = useState<'all' | 'Vacant' | 'Occupied' | 'Dirty' | 'Maintenance'>('all');
+
+  React.useEffect(() => {
+    const timer = setTimeout(() => setAnimateChart(true), 150);
+    return () => clearTimeout(timer);
+  }, []);
 
   React.useEffect(() => {
     const readSearch = () => {
@@ -129,6 +161,16 @@ export default function DashboardPage() {
   }
 
   if (error) {
+    const isUnauthorized = (error as any)?.response?.status === 401;
+    if (isUnauthorized) {
+      return (
+        <div className="flex h-[50vh] flex-col items-center justify-center space-y-2.5 text-center">
+          <div className="h-7 w-7 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+          <p className="text-xs text-muted-foreground font-semibold">Session expired. Redirecting to login...</p>
+        </div>
+      );
+    }
+
     return (
       <div className="flex h-[50vh] flex-col items-center justify-center space-y-4 border rounded-xl p-8 bg-card text-center">
         <AlertTriangle className="h-10 w-10 text-destructive animate-pulse" />
@@ -179,6 +221,79 @@ export default function DashboardPage() {
         return 'bg-red-500/5 text-red-700 border-red-500/20 dark:bg-red-500/10 dark:text-red-400 dark:border-red-500/20';
     }
   };
+
+  // Toggle availability state
+  const toggleAvailability = (staffName: string, day: string) => {
+    setStaff((prev) =>
+      prev.map((s) => {
+        if (s.name === staffName) {
+          return {
+            ...s,
+            availability: {
+              ...s.availability,
+              [day]: !s.availability[day],
+            },
+          };
+        }
+        return s;
+      })
+    );
+  };
+
+  // Solve Weekly Shifts based on Occupancy and Availability (Round-Robin Shift Tracker)
+  const getWeeklySchedule = () => {
+    const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+    const occupancyRates: { [key: string]: number } = {};
+    weeklyOccupancy.forEach((d) => {
+      occupancyRates[d.day] = d.rate;
+    });
+
+    const schedule: { [key: string]: StaffMember[] } = {};
+    let staffIndex = 0; // Rotate starting index daily to ensure balanced distribution
+
+    days.forEach((day) => {
+      const rate = occupancyRates[day] || 50;
+
+      // Housekeeper counts needed based on capacity
+      let reqCount = 3;
+      if (rate < 30) reqCount = 2;
+      else if (rate <= 60) reqCount = 3;
+      else if (rate <= 80) reqCount = 4;
+      else reqCount = 5;
+
+      const availableStaff = staff.filter((s) => s.availability[day]);
+
+      if (availableStaff.length === 0) {
+        schedule[day] = [];
+        return;
+      }
+
+      const assigned: StaffMember[] = [];
+      const countToAssign = Math.min(reqCount, availableStaff.length);
+      let attempts = 0;
+
+      while (assigned.length < countToAssign && attempts < staff.length * 2) {
+        const candidate = staff[staffIndex % staff.length];
+        if (candidate.availability[day] && !assigned.some((a) => a.name === candidate.name)) {
+          assigned.push(candidate);
+        }
+        staffIndex++;
+        attempts++;
+      }
+      schedule[day] = assigned;
+    });
+
+    return schedule;
+  };
+
+  const weeklySchedule = getWeeklySchedule();
+
+  const occupancyRatesMap: { [key: string]: number } = {};
+  weeklyOccupancy.forEach((d) => {
+    occupancyRatesMap[d.day] = d.rate;
+  });
+
+  const totalWeeklyShifts = Object.values(weeklySchedule).reduce((acc, list) => acc + list.length, 0);
 
   return (
     <div className="space-y-8 max-w-[92rem] mx-auto">
@@ -336,6 +451,151 @@ export default function DashboardPage() {
         </Card>
       </div>
 
+      {/* Housekeeper Weekly Schedule Console */}
+      <Card className="border shadow-none bg-card">
+        <CardHeader className="pb-2 border-b flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+          <div className="flex items-center space-x-2">
+            <Users className="h-5 w-5 text-primary" />
+            <div>
+              <CardTitle className="text-base font-semibold">Housekeeper Weekly Schedule</CardTitle>
+              <CardDescription>Dynamic shift scheduler based on hotel occupancy and staff availability</CardDescription>
+            </div>
+          </div>
+          {/* Summary Stats Badges */}
+          <div className="flex gap-2">
+            <div className="text-[10px] font-bold bg-primary/5 border text-primary border-primary/10 px-2.5 py-1 rounded-lg">
+              {totalWeeklyShifts} Shifts Scheduled This Week
+            </div>
+            <div className="text-[10px] font-bold bg-muted text-muted-foreground px-2.5 py-1 rounded-lg">
+              6 Active Housekeepers
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent className="pt-6 pb-6 space-y-6">
+          {/* Legend and User Guide */}
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center p-3.5 border rounded-xl bg-muted/20 gap-3">
+            <div className="text-xs text-muted-foreground font-medium leading-tight">
+              <span className="font-bold text-foreground">Scheduling Tip</span>: Click directly on any cell in the table below to toggle that housekeeper's availability. The shifts and counts will instantly recalculate.
+            </div>
+            {/* Visual Legend */}
+            <div className="flex flex-wrap gap-2 text-[9px] font-extrabold uppercase tracking-wider">
+              <span className="flex items-center gap-1.5 px-2 py-1 rounded bg-emerald-500/10 text-emerald-700 border border-emerald-500/20">
+                <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                On Duty (Assigned)
+              </span>
+              <span className="flex items-center gap-1.5 px-2 py-1 rounded bg-muted text-muted-foreground/60 border border-border/20">
+                <span className="h-1.5 w-1.5 rounded-full bg-muted-foreground/40" />
+                Off Duty (Available)
+              </span>
+              <span className="flex items-center gap-1.5 px-2 py-1 rounded bg-red-500/5 text-red-500/55 border border-red-500/10 italic">
+                <span className="h-1.5 w-1.5 rounded-full bg-red-500" />
+                Unavailable
+              </span>
+            </div>
+          </div>
+
+          {/* Unified Matrix Table */}
+          <div className="overflow-x-auto border border-border/50 rounded-xl bg-muted/10 shadow-3xs">
+            <table className="w-full border-collapse text-left text-xs min-w-[800px]">
+              <thead>
+                <tr className="bg-muted/40 border-b border-border/40 font-bold">
+                  <th className="p-3.5 font-bold text-muted-foreground w-[180px]">Housekeeper</th>
+                  {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map((day) => {
+                    const rate = occupancyRatesMap[day] || 50;
+                    const isToday = day === 'Sun';
+                    return (
+                      <th key={day} className={`p-3.5 text-center w-[95px] transition-colors ${isToday ? 'bg-primary/5' : ''}`}>
+                        <div className={`font-extrabold uppercase tracking-wider ${isToday ? 'text-primary' : 'text-muted-foreground'}`}>{day}</div>
+                        <span className={`inline-block text-[8px] font-black px-1.5 py-0.5 rounded-md leading-none mt-1.5 ${
+                          rate > 80 ? 'bg-rose-500/10 text-rose-600' :
+                          rate > 60 ? 'bg-amber-500/10 text-amber-600' : 'bg-emerald-500/10 text-emerald-600'
+                        }`}>
+                          {rate}% Cap
+                        </span>
+                      </th>
+                    );
+                  })}
+                  <th className="p-3.5 font-bold text-muted-foreground text-right w-[110px]">Total Shifts</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border/30">
+                {staff.map((member) => {
+                  const shiftCount = Object.values(weeklySchedule).filter((dayStaff) =>
+                    dayStaff.some((s) => s.name === member.name)
+                  ).length;
+
+                  return (
+                    <tr 
+                      key={member.name}
+                      className={`hover:bg-muted/20 transition-all ${
+                        hoveredStaff === member.name ? 'bg-primary/5 font-medium' : ''
+                      }`}
+                      onMouseEnter={() => setHoveredStaff(member.name)}
+                      onMouseLeave={() => setHoveredStaff(null)}
+                    >
+                      {/* Employee Details Column */}
+                      <td className="p-3.5 font-bold flex items-center space-x-2.5">
+                        <span className={`h-7 w-7 rounded-full border flex items-center justify-center text-[10px] font-black uppercase shadow-3xs ${member.color}`}>
+                          {member.initials}
+                        </span>
+                        <span className="text-foreground text-xs">{member.name}</span>
+                      </td>
+
+                      {/* Day cells (Interactive Availability Toggles) */}
+                      {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map((day) => {
+                        const isAssigned = (weeklySchedule[day] || []).some((s) => s.name === member.name);
+                        const isAvailable = member.availability[day];
+                        const isToday = day === 'Sun';
+
+                        return (
+                          <td key={day} className={`p-2 transition-colors ${isToday ? 'bg-primary/5' : ''}`}>
+                            <button
+                              onClick={() => toggleAvailability(member.name, day)}
+                              className={`w-full h-[36px] rounded-lg text-[9px] font-black uppercase transition-all cursor-pointer border flex flex-col justify-center items-center shadow-3xs ${
+                                isAssigned 
+                                  ? 'bg-emerald-500/15 text-emerald-700 border-emerald-500/25 dark:bg-emerald-500/20 dark:text-emerald-300 hover:bg-emerald-500/25' 
+                                  : isAvailable 
+                                    ? 'bg-muted hover:bg-muted/70 text-muted-foreground/60 border-border/10'
+                                    : 'bg-red-500/5 hover:bg-red-500/10 text-red-500/40 dark:text-red-400/50 border-red-500/10 italic'
+                              }`}
+                              title={`Click to toggle ${member.name}'s availability on ${day}`}
+                            >
+                              {isAssigned ? 'ON DUTY' : isAvailable ? 'Off' : 'N/A'}
+                            </button>
+                          </td>
+                        );
+                      })}
+
+                      {/* total shifts count */}
+                      <td className="p-3.5 font-black text-right text-primary text-xs">
+                        {shiftCount} shifts
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+              <tfoot>
+                <tr className="bg-muted/30 border-t border-border/40 font-bold">
+                  <td className="p-3.5 text-muted-foreground">Staff Required</td>
+                  {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map((day) => {
+                    const count = (weeklySchedule[day] || []).length;
+                    const isToday = day === 'Sun';
+                    return (
+                      <td key={day} className={`p-3.5 text-center text-foreground font-black transition-colors ${isToday ? 'bg-primary/5' : ''}`}>
+                        {count} Staff
+                      </td>
+                    );
+                  })}
+                  <td className="p-3.5 text-right text-muted-foreground font-black">
+                    {totalWeeklyShifts} Total
+                  </td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+        </CardContent>
+      </Card>
+
       {/* Dialog containing the full Room Grid status console */}
       <Dialog open={isGridOpen} onOpenChange={setIsGridOpen}>
         <DialogContent className="max-w-4xl md:max-w-5xl lg:max-w-6xl max-h-[85vh] overflow-y-auto bg-card border rounded-2xl shadow-2xl p-6 flex flex-col gap-6">
@@ -366,24 +626,51 @@ export default function DashboardPage() {
               <span className="text-[9px] font-black uppercase tracking-widest text-muted-foreground">Filter by Room Type</span>
               <div className="flex flex-wrap gap-1.5">
                 {[
-                  { label: 'All Rooms', value: 'all' },
-                  { label: '1 Queen Bed', value: '1 Queen Bed' },
-                  { label: '1 King Bed', value: '1 King Bed' },
-                  { label: '1 King ADA', value: '1 King ADA' },
-                  { label: '2 Queen Beds', value: '2 Queen Beds' },
-                ].map((tab) => (
-                  <button
-                    key={tab.value}
-                    onClick={() => setActiveTab(tab.value as any)}
-                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer border ${
-                      activeTab === tab.value
-                        ? 'bg-primary text-primary-foreground border-primary shadow-xs'
-                        : 'bg-muted/40 hover:bg-muted text-muted-foreground border-border/50'
-                    }`}
-                  >
-                    {tab.label}
-                  </button>
-                ))}
+                  { label: 'All Rooms', value: 'all', iconColor: '', icon: (selected: boolean) => <LayoutGrid className="h-7 w-7" /> },
+                  { label: '1 Queen Bed', value: '1 Queen Bed', iconColor: 'text-rose-500 dark:text-rose-400', icon: (selected: boolean) => <Bed className="h-7 w-7" /> },
+                  { label: '1 King Bed', value: '1 King Bed', iconColor: 'text-amber-500 dark:text-amber-400', icon: (selected: boolean) => <BedDouble className="h-7 w-7" /> },
+                  { label: '1 King ADA', value: '1 King ADA', iconColor: 'text-sky-500 dark:text-sky-400', icon: (selected: boolean) => (
+                    <div className="relative">
+                      <BedDouble className="h-7 w-7" />
+                      {!selected && (
+                        <span className="absolute -bottom-0.5 -right-0.5 bg-sky-500 text-white dark:bg-sky-400 dark:text-background rounded-full p-0.5 shadow-3xs">
+                          <Accessibility className="h-2.5 w-2.5 font-bold" />
+                        </span>
+                      )}
+                      {selected && (
+                        <span className="absolute -bottom-0.5 -right-0.5 bg-white/20 text-white rounded-full p-0.5">
+                          <Accessibility className="h-2.5 w-2.5 font-bold" />
+                        </span>
+                      )}
+                    </div>
+                  ) },
+                  { label: '2 Queen Beds', value: '2 Queen Beds', iconColor: 'text-indigo-500 dark:text-indigo-400', icon: (selected: boolean) => (
+                    <div className="flex -space-x-1.5 items-center justify-center">
+                      <Bed className="h-6 w-6" />
+                      <Bed className="h-6 w-6 opacity-60 -mt-1.5" />
+                    </div>
+                  )},
+                ].map((tab) => {
+                  const selected = activeTab === tab.value;
+                  return (
+                    <button
+                      key={tab.value}
+                      onClick={() => setActiveTab(tab.value as any)}
+                      className={`flex flex-col items-center justify-center p-2 rounded-2xl border transition-all cursor-pointer w-[110px] h-[86px] text-center shadow-3xs ${
+                        selected
+                          ? 'bg-primary text-primary-foreground border-primary shadow-xs ring-2 ring-primary/10'
+                          : 'bg-muted/30 hover:bg-muted text-muted-foreground border-border/40 hover:border-border/80'
+                      }`}
+                    >
+                      <div className={`flex items-center justify-center h-8 w-full ${selected ? '' : tab.iconColor}`}>
+                        {tab.icon(selected)}
+                      </div>
+                      <span className="text-[11px] font-black tracking-tight leading-tight mt-2 block whitespace-nowrap">
+                        {tab.label}
+                      </span>
+                    </button>
+                  );
+                })}
               </div>
             </div>
 
@@ -392,25 +679,32 @@ export default function DashboardPage() {
               <span className="text-[9px] font-black uppercase tracking-widest text-muted-foreground">Filter by Status</span>
               <div className="flex flex-wrap gap-1.5">
                 {[
-                  { label: 'All Statuses', value: 'all', dot: 'bg-muted-foreground/60' },
-                  { label: 'Vacant', value: 'Vacant', dot: 'bg-emerald-500' },
-                  { label: 'Occupied', value: 'Occupied', dot: 'bg-blue-500' },
-                  { label: 'Dirty', value: 'Dirty', dot: 'bg-amber-500' },
-                  { label: 'Maintenance', value: 'Maintenance', dot: 'bg-red-500' },
-                ].map((f) => (
-                  <button
-                    key={f.value}
-                    onClick={() => setStatusFilter(f.value as any)}
-                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer border flex items-center gap-1.5 ${
-                      statusFilter === f.value
-                        ? 'bg-foreground text-background border-foreground shadow-xs'
-                        : 'bg-muted/40 hover:bg-muted text-muted-foreground border-border/50'
-                    }`}
-                  >
-                    <span className={`h-1.5 w-1.5 rounded-full ${f.dot}`} />
-                    {f.label}
-                  </button>
-                ))}
+                  { label: 'All Statuses', value: 'all', iconColor: '', icon: <CircleDot className="h-7 w-7" /> },
+                  { label: 'Vacant', value: 'Vacant', iconColor: 'text-emerald-500 dark:text-emerald-400', icon: <DoorOpen className="h-7 w-7" /> },
+                  { label: 'Occupied', value: 'Occupied', iconColor: 'text-blue-500 dark:text-blue-400', icon: <UserCheck className="h-7 w-7" /> },
+                  { label: 'Dirty', value: 'Dirty', iconColor: 'text-amber-500 dark:text-amber-400', icon: <SprayCan className="h-7 w-7" /> },
+                  { label: 'Maintenance', value: 'Maintenance', iconColor: 'text-red-500 dark:text-red-400', icon: <Wrench className="h-7 w-7" /> },
+                ].map((f) => {
+                  const selected = statusFilter === f.value;
+                  return (
+                    <button
+                      key={f.value}
+                      onClick={() => setStatusFilter(f.value as any)}
+                      className={`flex flex-col items-center justify-center p-2 rounded-2xl border transition-all cursor-pointer w-[110px] h-[86px] text-center shadow-3xs ${
+                        selected
+                          ? 'bg-foreground text-background border-foreground shadow-xs ring-2 ring-foreground/10'
+                          : 'bg-muted/30 hover:bg-muted text-muted-foreground border-border/40 hover:border-border/80'
+                      }`}
+                    >
+                      <div className={`flex items-center justify-center h-8 w-full ${selected ? '' : f.iconColor}`}>
+                        {f.icon}
+                      </div>
+                      <span className="text-[11px] font-black tracking-tight leading-tight mt-2 block whitespace-nowrap">
+                        {f.label}
+                      </span>
+                    </button>
+                  );
+                })}
               </div>
             </div>
           </div>

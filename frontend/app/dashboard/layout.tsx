@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/providers/AuthProvider';
 import { useTheme } from 'next-themes';
+import { usePathname, useRouter } from 'next/navigation';
 import {
   LayoutDashboard,
   Users,
@@ -58,9 +59,14 @@ export default function DashboardLayout({
 }) {
   const { user, logout } = useAuth();
   const { theme, setTheme } = useTheme();
+  const pathname = usePathname();
+  const router = useRouter();
+
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isMobileOpen, setIsMobileOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState('Dashboard');
+
+  // Dynamically resolve active tab based on router pathname
+  const activeTab = pathname.includes('/dashboard/staff') ? 'Staff' : 'Dashboard';
 
   const [notifications, setNotifications] = useState([
     {
@@ -138,9 +144,9 @@ export default function DashboardLayout({
   };
 
   const navigation: SidebarItem[] = [
-    { name: 'Dashboard', icon: LayoutDashboard, href: '#' },
-    { name: 'Staff', icon: Users, href: '#' },
-    { name: 'Payroll', icon: Banknote, href: '#' },
+    { name: 'Dashboard', icon: LayoutDashboard, href: '/dashboard' },
+    { name: 'Staff', icon: Users, href: '/dashboard/staff' },
+    { name: 'Payroll', icon: Banknote, href: '/dashboard/payroll' },
     { name: 'Inventory', icon: Package, href: '#' },
     { name: 'Timesheets', icon: Clock, href: '#' },
     { name: 'Properties', icon: Building, href: '#' },
@@ -150,11 +156,12 @@ export default function DashboardLayout({
     { name: 'Settings', icon: Settings, href: '#' },
   ];
 
-  const handleTabClick = (tabName: string) => {
-    setActiveTab(tabName);
+  const handleTabClick = (item: SidebarItem) => {
     setIsMobileOpen(false);
-    if (tabName !== 'Dashboard') {
-      toast.info(`${tabName} module is a placeholder in Phase 1.`);
+    if (item.href === '#') {
+      toast.info(`${item.name} module is a placeholder in Phase 1.`);
+    } else {
+      router.push(item.href);
     }
   };
 
@@ -219,7 +226,7 @@ export default function DashboardLayout({
             return (
               <button
                 key={item.name}
-                onClick={() => handleTabClick(item.name)}
+                onClick={() => handleTabClick(item)}
                 className={`flex w-full items-center rounded-md px-3 py-2 text-sm font-medium transition-all group focus:outline-none focus:ring-1 focus:ring-primary/20
                   ${
                     isActive
@@ -241,17 +248,7 @@ export default function DashboardLayout({
           })}
         </nav>
 
-        {/* Sidebar Footer */}
-        <div className="p-3 border-t bg-muted/10">
-          <button
-            onClick={handleLogout}
-            className={`flex w-full items-center rounded-md px-3 py-2 text-sm font-medium text-destructive hover:bg-destructive/10 transition-colors focus:outline-none focus:ring-1 focus:ring-destructive/20`}
-            title={isCollapsed ? 'Logout' : undefined}
-          >
-            <LogOut className={`h-5 w-5 flex-shrink-0 ${isCollapsed ? 'mr-0' : 'mr-3'}`} />
-            {!isCollapsed && <span>Logout</span>}
-          </button>
-        </div>
+
       </aside>
 
       {/* Main Container */}
@@ -389,7 +386,10 @@ export default function DashboardLayout({
                   Role: <span className="ml-1 font-semibold text-primary">{user?.role || 'Admin'}</span>
                 </DropdownMenuItem>
                 <DropdownMenuItem
-                  onClick={() => handleTabClick('Settings')}
+                  onClick={() => {
+                    const item = navigation.find((n) => n.name === 'Settings');
+                    if (item) handleTabClick(item);
+                  }}
                   className="cursor-pointer text-xs"
                 >
                   Manage Account Settings
@@ -405,7 +405,7 @@ export default function DashboardLayout({
 
         {/* Dashboard Main Content */}
         <main className="flex-1 p-4 md:p-6 lg:p-8 space-y-6 overflow-y-auto">
-          {activeTab === 'Dashboard' ? (
+          {activeTab === 'Dashboard' || activeTab === 'Staff' ? (
             children
           ) : (
             <div className="flex h-[60vh] flex-col items-center justify-center border border-dashed rounded-lg p-8 text-center bg-card">
