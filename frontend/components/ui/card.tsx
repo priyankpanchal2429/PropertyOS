@@ -5,6 +5,7 @@ import { cn } from "@/lib/utils"
 function Card({
   className,
   size = "default",
+  style,
   ...props
 }: React.ComponentProps<"div"> & { size?: "default" | "sm" }) {
   return (
@@ -12,9 +13,10 @@ function Card({
       data-slot="card"
       data-size={size}
       className={cn(
-        "group/card flex flex-col gap-(--card-spacing) overflow-hidden rounded-xl bg-card py-(--card-spacing) text-sm text-card-foreground ring-1 ring-foreground/10 [--card-spacing:--spacing(4)] has-data-[slot=card-footer]:pb-0 has-[>img:first-child]:pt-0 data-[size=sm]:[--card-spacing:--spacing(3)] data-[size=sm]:has-data-[slot=card-footer]:pb-0 *:[img:first-child]:rounded-t-xl *:[img:last-child]:rounded-b-xl",
+        "group/card flex flex-col gap-(--card-spacing) overflow-hidden rounded-[var(--radius-card)] py-(--card-spacing) px-(--card-spacing) text-sm border [--card-spacing:--spacing(6)] has-data-[slot=card-footer]:pb-0 has-[>img:first-child]:pt-0 data-[size=sm]:[--card-spacing:--spacing(4)] data-[size=sm]:has-data-[slot=card-footer]:pb-0 *:[img:first-child]:rounded-t-[var(--radius-card)] *:[img:last-child]:rounded-b-[var(--radius-card)]",
         className
       )}
+      style={{ backgroundColor: 'var(--card)', color: 'var(--foreground)', borderColor: 'var(--border)', ...style }}
       {...props}
     />
   )

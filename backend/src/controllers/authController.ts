@@ -1,6 +1,10 @@
 import { Request, Response, NextFunction } from 'express';
 import { AuthService } from '../services/authService.js';
 import { AuthenticatedRequest } from '../types/index.js';
+import { UserRepository } from '../repositories/userRepository.js';
+import { ApiError } from '../utils/apiError.js';
+
+const userRepository = new UserRepository();
 
 const authService = new AuthService();
 
@@ -88,11 +92,23 @@ export const logout = async (req: Request, res: Response, next: NextFunction) =>
 
 export const getMe = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
   try {
-    // req.user is populated by requireAuth middleware
+    if (!req.user || !req.user.userId) {
+      return next(new ApiError(401, 'Unauthorized: Access token is missing or invalid'));
+    }
+    const user = await userRepository.findById(req.user.userId);
+    if (!user) {
+      return next(new ApiError(404, 'User not found'));
+    }
     res.status(200).json({
       status: 'success',
       data: {
-        user: req.user,
+        user: {
+          id: user.id,
+          name: user.name,
+          username: user.username,
+          email: user.email,
+          role: user.role,
+        },
       },
     });
   } catch (error) {

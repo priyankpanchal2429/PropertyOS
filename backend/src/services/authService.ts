@@ -62,10 +62,14 @@ export class AuthService {
         throw new ApiError(401, 'Refresh token not found');
       }
 
-      // If token is revoked, it's a security breach (potential reuse). Revoke all user sessions.
+      // If token is revoked, check if it's outside the 10-second grace period (to prevent concurrent refresh issues)
       if (storedToken.isRevoked) {
-        await tokenRepository.revokeAllUserTokens(storedToken.user.toString());
-        throw new ApiError(401, 'Session revoked due to token reuse detection');
+        const gracePeriodMs = 10000; // 10 seconds
+        const timeSinceRevocation = new Date().getTime() - new Date(storedToken.updatedAt).getTime();
+        if (timeSinceRevocation > gracePeriodMs) {
+          await tokenRepository.revokeAllUserTokens(storedToken.user.toString());
+          throw new ApiError(401, 'Session revoked due to token reuse detection');
+        }
       }
 
       if (storedToken.expiresAt < new Date()) {

@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
+import { formatCaliforniaDate } from '@/lib/timezone';
 import {
   User,
   Briefcase,
@@ -19,8 +20,7 @@ import {
   CalendarPlus,
   Mail,
   Download,
-  ArrowLeft,
-  Building,
+  ArrowLeft, Building, Home,
   Phone,
   MapPin,
   X,
@@ -95,6 +95,29 @@ const STEPS = [
   { id: 3, label: 'Compensation', icon: DollarSign },
   { id: 4, label: 'Review', icon: ClipboardCheck },
 ];
+
+const C = {
+  bg:        'var(--background)',
+  sidebar:   'var(--sidebar)',
+  card:      'var(--card)',
+  surface:   'var(--surface)',
+  border:    'var(--border)',
+  divider:   'var(--divider)',
+  white:     'var(--foreground)',
+  secondary: 'var(--sidebar-foreground)',
+  muted:     'var(--muted-foreground)',
+  placeholder: 'var(--text-placeholder, #666666)',
+  cyan:      'var(--primary)',
+  cyanL:     '#45D7E8',
+  blue:      '#2857DA',
+  blueL:     '#74AAD9',
+  orange:    '#E88916',
+  yellow:    '#F4B63F',
+  green:     '#32C766',
+  red:       '#E64C4C',
+  lightGray: '#DADADA',
+  darkGray:  '#4A4A4A',
+};
 
 const WORKER_TYPES = ['Employee', 'Contractor (Individual)', 'Contractor (Business)', 'Unpaid Team Member'];
 
@@ -329,8 +352,8 @@ export default function OnboardPage() {
 
   /* ─── Shared Input Styling ─── */
 
-  const selectClass = 'w-full h-9 rounded-lg border border-input bg-transparent px-3 py-1 text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:border-ring cursor-pointer dark:bg-input/30';
-  const labelClass = 'text-[11px] font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1';
+  const selectClass = 'w-full h-[46px] rounded-[var(--radius)] border px-4 py-2 text-sm font-medium transition-colors cursor-pointer outline-none shadow-sm bg-[var(--input)] border-[var(--border)] text-[var(--foreground)]';
+  const labelClass = 'text-[10px] font-bold uppercase tracking-wider flex items-center gap-1 mb-1 text-muted-foreground';
   const fieldError = (key: string) => errors[key] ? (
     <p className="text-[10px] text-destructive font-semibold flex items-center gap-1 mt-1">
       <AlertCircle className="h-3 w-3" />
@@ -375,7 +398,7 @@ export default function OnboardPage() {
               ['Employee ID', createdId],
               ['Department', dept],
               ['Manager', employment.manager === 'none' ? 'No Manager' : employment.manager],
-              ['Start Date', employment.startDate ? new Date(employment.startDate).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }) : '—'],
+              ['Start Date', employment.startDate ? formatCaliforniaDate(employment.startDate) : '—'],
               ['Worker Type', personal.workerType],
               ['Employment Status', compensation.employmentStatus],
             ].map(([label, value]) => (
@@ -421,33 +444,35 @@ export default function OnboardPage() {
      ═══════════════════════════════════════════════════════ */
 
   return (
-    <div className="max-w-3xl mx-auto space-y-6">
+    <div style={{ backgroundColor: 'var(--background)', minHeight: '100%', padding: '24px 0', display: 'flex', flexDirection: 'column', gap: 24, width: '100%', margin: 0 }}>
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <button
+      <div className="flex items-start justify-between">
+        <div className="flex flex-col items-start">
+          <Button
+            variant="ghost"
+            size="sm"
             onClick={() => router.push('/dashboard/staff')}
-            className="text-xs text-muted-foreground hover:text-foreground font-semibold flex items-center gap-1 mb-2 cursor-pointer transition-colors"
+            className="mb-4 h-8 px-3 text-xs font-bold rounded-lg bg-muted/50 hover:bg-muted text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
           >
-            <ArrowLeft className="h-3 w-3" />
-            Back to Staff
-          </button>
-          <h1 className="text-xl font-black tracking-tight flex items-center gap-2">
-            <UserPlus className="h-5 w-5 text-primary" />
+            <ArrowLeft className="h-3.5 w-3.5 mr-1.5" />
+            Back
+          </Button>
+          <h1 className="text-2xl font-black tracking-tight flex items-center gap-2 text-foreground">
+            <UserPlus className="h-6 w-6 text-primary" />
             Add New Employee
           </h1>
-          <p className="text-xs text-muted-foreground font-medium mt-0.5">
+          <p className="text-sm text-muted-foreground font-medium mt-1">
             Complete each step to onboard a new team member.
           </p>
         </div>
-        <Button variant="outline" size="sm" className="text-xs font-bold gap-1.5 h-8 cursor-pointer" onClick={handleSaveDraft}>
-          <Save className="h-3.5 w-3.5" />
+        <Button variant="outline" size="sm" className="text-xs font-bold gap-1.5 h-9 mt-12 cursor-pointer" onClick={handleSaveDraft}>
+          <Save className="h-4 w-4" />
           Save Draft
         </Button>
       </div>
 
       {/* Progress Steps */}
-      <div className="flex items-center justify-between bg-muted/20 rounded-2xl p-3 border">
+      <div style={{ backgroundColor: C.surface, borderRadius: 16, padding: 12, border: `1px solid ${C.border}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         {STEPS.map((step, idx) => {
           const StepIcon = step.icon;
           const isActive = currentStep === step.id;
@@ -458,20 +483,34 @@ export default function OnboardPage() {
             <React.Fragment key={step.id}>
               <button
                 onClick={() => isClickable && handleStepClick(step.id)}
-                className={`flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-bold transition-all
-                  ${isActive ? 'bg-primary text-primary-foreground shadow-xs' : ''}
-                  ${isCompleted && !isActive ? 'text-emerald-700 dark:text-emerald-300' : ''}
-                  ${!isActive && !isCompleted ? 'text-muted-foreground' : ''}
-                  ${isClickable ? 'cursor-pointer hover:bg-muted' : 'cursor-default'}
-                `}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 8,
+                  padding: '8px 12px',
+                  borderRadius: 12,
+                  fontSize: 12,
+                  fontWeight: 700,
+                  transition: 'all 0.15s',
+                  border: 'none',
+                  backgroundColor: isActive ? C.cyan : 'transparent',
+                  color: isActive ? '#000000' : isCompleted ? C.green : C.muted,
+                  cursor: isClickable ? 'pointer' : 'default',
+                }}
               >
-                <div className={`h-7 w-7 rounded-lg flex items-center justify-center flex-shrink-0
-                  ${isActive ? 'bg-primary-foreground/20' : ''}
-                  ${isCompleted && !isActive ? 'bg-emerald-500/10 border border-emerald-500/20' : ''}
-                  ${!isActive && !isCompleted ? 'bg-muted/50 border border-border/50' : ''}
-                `}>
+                <div style={{
+                  height: 28,
+                  width: 28,
+                  borderRadius: 8,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  flexShrink: 0,
+                  backgroundColor: isActive ? 'rgba(0,0,0,0.15)' : isCompleted ? `${C.green}15` : `${C.surface}30`,
+                  border: isCompleted ? `1px solid ${C.green}30` : `1px solid ${C.border}`,
+                }}>
                   {isCompleted && !isActive ? (
-                    <Check className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
+                    <Check className="h-3.5 w-3.5" style={{ color: C.green }} />
                   ) : (
                     <StepIcon className="h-3.5 w-3.5" />
                   )}
@@ -479,7 +518,7 @@ export default function OnboardPage() {
                 <span className="hidden sm:inline">{step.label}</span>
               </button>
               {idx < STEPS.length - 1 && (
-                <div className={`flex-1 h-px mx-1 ${isCompleted ? 'bg-emerald-500/40' : 'bg-border/60'}`} />
+                <div style={{ flex: 1, height: 1, margin: '0 4px', backgroundColor: isCompleted ? C.green : C.divider }} />
               )}
             </React.Fragment>
           );
@@ -487,48 +526,41 @@ export default function OnboardPage() {
       </div>
 
       {/* Step Content */}
-      <Card className="border shadow-none bg-card">
-        <CardContent className="p-6">
+      <div style={{ backgroundColor: C.card, borderRadius: 16, padding: '24px 28px', border: `1px solid ${C.border}` }}>
+        <div className="space-y-6">
 
           {/* ═══ STEP 1: Personal Information ═══ */}
           {currentStep === 1 && (
             <div className="space-y-6 animate-in fade-in-0 slide-in-from-right-4 duration-300">
-              <div className="border-b pb-3">
-                <h2 className="text-base font-black flex items-center gap-2">
-                  <User className="h-4.5 w-4.5 text-primary" />
+              <div style={{ borderBottom: `1px solid ${C.divider}`, paddingBottom: 12, marginBottom: 24 }}>
+                <h2 style={{ fontSize: 16, fontWeight: 800, color: C.white, display: 'flex', alignItems: 'center', gap: 8, margin: 0 }}>
+                  <User className="h-5 w-5" style={{ color: C.cyan }} />
                   Personal Information
                 </h2>
-                <p className="text-xs text-muted-foreground font-medium mt-0.5">Basic details about the new employee.</p>
+                <p style={{ fontSize: 12, color: C.muted, margin: '4px 0 0 0' }}>Basic details about the new employee.</p>
               </div>
 
-              {/* Basic Info */}
-              <div>
-                <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-3">Basic Information</p>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div className="space-y-1.5">
-                    <label className={labelClass}>First Name <span className="text-destructive">*</span></label>
-                    <Input value={personal.firstName} onChange={(e) => setPersonal({ ...personal, firstName: e.target.value })} placeholder="John" className="text-sm" aria-invalid={!!errors.firstName} />
-                    {fieldError('firstName')}
-                  </div>
-                  <div className="space-y-1.5">
-                    <label className={labelClass}>Middle Name</label>
-                    <Input value={personal.middleName} onChange={(e) => setPersonal({ ...personal, middleName: e.target.value })} placeholder="(Optional)" className="text-sm" />
-                  </div>
-                  <div className="space-y-1.5">
-                    <label className={labelClass}>Last Name <span className="text-destructive">*</span></label>
-                    <Input value={personal.lastName} onChange={(e) => setPersonal({ ...personal, lastName: e.target.value })} placeholder="Doe" className="text-sm" aria-invalid={!!errors.lastName} />
-                    {fieldError('lastName')}
-                  </div>
-                  <div className="space-y-1.5">
-                    <label className={labelClass}>Preferred First Name</label>
-                    <Input value={personal.preferredName} onChange={(e) => setPersonal({ ...personal, preferredName: e.target.value })} placeholder="(Optional)" className="text-sm" />
-                  </div>
+              {/* Unified compact layout */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+                <div className="space-y-1.5">
+                  <label className={labelClass}>First Name <span className="text-destructive">*</span></label>
+                  <Input value={personal.firstName} onChange={(e) => setPersonal({ ...personal, firstName: e.target.value })} placeholder="John" className="text-sm" aria-invalid={!!errors.firstName} />
+                  {fieldError('firstName')}
                 </div>
-              </div>
+                <div className="space-y-1.5">
+                  <label className={labelClass}>Middle Name</label>
+                  <Input value={personal.middleName} onChange={(e) => setPersonal({ ...personal, middleName: e.target.value })} placeholder="(Optional)" className="text-sm" />
+                </div>
+                <div className="space-y-1.5">
+                  <label className={labelClass}>Last Name <span className="text-destructive">*</span></label>
+                  <Input value={personal.lastName} onChange={(e) => setPersonal({ ...personal, lastName: e.target.value })} placeholder="Doe" className="text-sm" aria-invalid={!!errors.lastName} />
+                  {fieldError('lastName')}
+                </div>
+                <div className="space-y-1.5">
+                  <label className={labelClass}>Preferred Name</label>
+                  <Input value={personal.preferredName} onChange={(e) => setPersonal({ ...personal, preferredName: e.target.value })} placeholder="(Optional)" className="text-sm" />
+                </div>
 
-              {/* Worker Classification */}
-              <div>
-                <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-3">Worker Classification</p>
                 <div className="space-y-1.5">
                   <label className={labelClass}>Worker Type <span className="text-destructive">*</span></label>
                   <select value={personal.workerType} onChange={(e) => setPersonal({ ...personal, workerType: e.target.value })} className={selectClass} aria-invalid={!!errors.workerType}>
@@ -536,11 +568,6 @@ export default function OnboardPage() {
                   </select>
                   {fieldError('workerType')}
                 </div>
-              </div>
-
-              {/* Location */}
-              <div>
-                <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-3">Location</p>
                 <div className="space-y-1.5">
                   <label className={labelClass}>Country <span className="text-destructive">*</span></label>
                   <select value={personal.country} onChange={(e) => setPersonal({ ...personal, country: e.target.value })} className={selectClass}>
@@ -549,34 +576,27 @@ export default function OnboardPage() {
                     <option value="Mexico">Mexico</option>
                   </select>
                 </div>
-              </div>
-
-              {/* Contact */}
-              <div>
-                <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-3">Contact Information</p>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div className="space-y-1.5">
-                    <label className={labelClass}><Phone className="h-3 w-3" /> Phone Number <span className="text-destructive">*</span></label>
-                    <Input
-                      value={personal.phone}
-                      onChange={(e) => setPersonal({ ...personal, phone: formatPhone(e.target.value) })}
-                      placeholder="+1 (555) 123-4567"
-                      className="text-sm tabular-nums"
-                      aria-invalid={!!errors.phone}
-                    />
-                    {fieldError('phone')}
-                  </div>
-                  <div className="space-y-1.5">
-                    <label className={labelClass}><Mail className="h-3 w-3" /> Email Address <span className="text-destructive">*</span></label>
-                    <Input value={personal.email} onChange={(e) => setPersonal({ ...personal, email: e.target.value })} placeholder="john.doe@email.com" className="text-sm" type="email" aria-invalid={!!errors.email} />
-                    {fieldError('email')}
-                    {personal.email && EXISTING_EMAILS.includes(personal.email.toLowerCase()) && !errors.email && (
-                      <p className="text-[10px] text-amber-600 dark:text-amber-400 font-semibold flex items-center gap-1 mt-1">
-                        <AlertCircle className="h-3 w-3" />
-                        Possible duplicate — this email belongs to an existing employee.
-                      </p>
-                    )}
-                  </div>
+                <div className="space-y-1.5">
+                  <label className={labelClass}><Phone className="h-3 w-3" /> Phone Number <span className="text-destructive">*</span></label>
+                  <Input
+                    value={personal.phone}
+                    onChange={(e) => setPersonal({ ...personal, phone: formatPhone(e.target.value) })}
+                    placeholder="+1 (555) 123-4567"
+                    className="text-sm tabular-nums"
+                    aria-invalid={!!errors.phone}
+                  />
+                  {fieldError('phone')}
+                </div>
+                <div className="space-y-1.5">
+                  <label className={labelClass}><Mail className="h-3 w-3" /> Email Address <span className="text-destructive">*</span></label>
+                  <Input value={personal.email} onChange={(e) => setPersonal({ ...personal, email: e.target.value })} placeholder="john.doe@email.com" className="text-sm" type="email" aria-invalid={!!errors.email} />
+                  {fieldError('email')}
+                  {personal.email && EXISTING_EMAILS.includes(personal.email.toLowerCase()) && !errors.email && (
+                    <p className="text-[10px] text-amber-600 dark:text-amber-400 font-semibold flex items-center gap-1 mt-1">
+                      <AlertCircle className="h-3 w-3" />
+                      Possible duplicate email.
+                    </p>
+                  )}
                 </div>
               </div>
             </div>
@@ -585,18 +605,18 @@ export default function OnboardPage() {
           {/* ═══ STEP 2: Employment Details ═══ */}
           {currentStep === 2 && (
             <div className="space-y-6 animate-in fade-in-0 slide-in-from-right-4 duration-300">
-              <div className="border-b pb-3">
-                <h2 className="text-base font-black flex items-center gap-2">
-                  <Briefcase className="h-4.5 w-4.5 text-primary" />
+              <div style={{ borderBottom: `1px solid ${C.divider}`, paddingBottom: 12, marginBottom: 24 }}>
+                <h2 style={{ fontSize: 16, fontWeight: 800, color: C.white, display: 'flex', alignItems: 'center', gap: 8, margin: 0 }}>
+                  <Briefcase className="h-5 w-5" style={{ color: C.cyan }} />
                   Employment Details
                 </h2>
-                <p className="text-xs text-muted-foreground font-medium mt-0.5">Work location, role, and reporting structure.</p>
+                <p style={{ fontSize: 12, color: C.muted, margin: '4px 0 0 0' }}>Work location, role, and reporting structure.</p>
               </div>
 
               {/* Work Location */}
               <div>
-                <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-3">Work Location</p>
-                <p className="text-xs text-muted-foreground font-medium mb-3">Where is this employee working from?</p>
+                <p style={{ fontSize: 10, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.08em', color: C.muted, marginBottom: 4 }}>Work Location</p>
+                <p style={{ fontSize: 12, color: C.muted, marginBottom: 12 }}>Where is this employee working from?</p>
                 <div className="flex gap-3">
                   {(['home', 'office'] as const).map((loc) => (
                     <button
@@ -609,7 +629,11 @@ export default function OnboardPage() {
                           : 'bg-muted/30 text-muted-foreground border-border/50 hover:bg-muted hover:border-border'
                       }`}
                     >
-                      {loc === 'home' ? '🏠 Work From Home' : '🏢 Office Location'}
+                      {loc === 'home' ? (
+                        <span className="flex items-center justify-center gap-2"><Home size={16} /> Work From Home</span>
+                      ) : (
+                        <span className="flex items-center justify-center gap-2"><Building size={16} /> Office Location</span>
+                      )}
                     </button>
                   ))}
                 </div>
@@ -618,8 +642,8 @@ export default function OnboardPage() {
 
               {/* Conditional Address Fields */}
               {employment.workLocation === 'office' && (
-                <div className="space-y-4 p-4 rounded-xl border bg-muted/10 animate-in fade-in-0 slide-in-from-top-2 duration-200">
-                  <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Work Address</p>
+                <div style={{ padding: 16, borderRadius: 12, border: `1px solid ${C.border}`, backgroundColor: 'rgba(120,120,120,0.03)', display: 'flex', flexDirection: 'column', gap: 16 }} className="animate-in fade-in-0 slide-in-from-top-2 duration-200">
+                  <p style={{ fontSize: 10, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.08em', color: C.muted, margin: 0 }}>Work Address</p>
                   <div className="space-y-3">
                     <div className="space-y-1.5">
                       <label className={labelClass}>Address Line 1 <span className="text-destructive">*</span></label>
@@ -656,7 +680,7 @@ export default function OnboardPage() {
 
               {/* Employment Info */}
               <div>
-                <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-3">Employment Information</p>
+                <p style={{ fontSize: 10, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.08em', color: C.muted, marginBottom: 12 }}>Employment Information</p>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-1.5">
                     <label className={labelClass}>Work State <span className="text-destructive">*</span></label>
@@ -721,7 +745,7 @@ export default function OnboardPage() {
 
               {/* Dates */}
               <div>
-                <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-3">Employment Dates</p>
+                <p style={{ fontSize: 10, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.08em', color: C.muted, marginBottom: 12 }}>Employment Dates</p>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-1.5">
                     <label className={labelClass}>Start Date <span className="text-destructive">*</span></label>
@@ -741,12 +765,12 @@ export default function OnboardPage() {
           {/* ═══ STEP 3: Compensation ═══ */}
           {currentStep === 3 && (
             <div className="space-y-6 animate-in fade-in-0 slide-in-from-right-4 duration-300">
-              <div className="border-b pb-3">
-                <h2 className="text-base font-black flex items-center gap-2">
-                  <DollarSign className="h-4.5 w-4.5 text-primary" />
+              <div style={{ borderBottom: `1px solid ${C.divider}`, paddingBottom: 12, marginBottom: 24 }}>
+                <h2 style={{ fontSize: 16, fontWeight: 800, color: C.white, display: 'flex', alignItems: 'center', gap: 8, margin: 0 }}>
+                  <DollarSign className="h-5 w-5" style={{ color: C.cyan }} />
                   Compensation
                 </h2>
-                <p className="text-xs text-muted-foreground font-medium mt-0.5">Pay structure, schedule, and tax information.</p>
+                <p style={{ fontSize: 12, color: C.muted, margin: '4px 0 0 0' }}>Pay structure, schedule, and tax information.</p>
               </div>
 
               {/* Employee Type */}
@@ -817,7 +841,7 @@ export default function OnboardPage() {
 
               {/* Tax Status */}
               <div>
-                <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-3">Tax Exemptions <span className="text-muted-foreground text-[9px] normal-case font-semibold">(Optional)</span></p>
+                <p style={{ fontSize: 10, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.08em', color: C.muted, marginBottom: 12 }}>Tax Exemptions <span style={{ textTransform: 'none', fontSize: 9, fontWeight: 500, letterSpacing: 'normal' }}>(Optional)</span></p>
                 <div className="flex flex-wrap gap-4">
                   {([['federalExempt', 'Federal Exempt'], ['stateExempt', 'State Exempt'], ['localExempt', 'Local Exempt']] as const).map(([key, label]) => (
                     <label key={key} className="flex items-center gap-2 text-sm font-medium cursor-pointer">
@@ -834,17 +858,17 @@ export default function OnboardPage() {
               </div>
 
               {/* Advanced Payroll (Collapsible) */}
-              <div className="border rounded-xl overflow-hidden">
+              <div style={{ border: `1px solid ${C.border}`, borderRadius: 12, overflow: 'hidden' }}>
                 <button
                   type="button"
                   onClick={() => setCompensation({ ...compensation, showAdvanced: !compensation.showAdvanced })}
-                  className="flex items-center justify-between w-full p-3 text-sm font-bold text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+                  style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', padding: 12, fontSize: 14, fontWeight: 700, color: C.muted, backgroundColor: 'transparent', border: 'none', cursor: 'pointer' }}
                 >
                   <span>Advanced Payroll Settings</span>
                   {compensation.showAdvanced ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
                 </button>
                 {compensation.showAdvanced && (
-                  <div className="p-4 border-t bg-muted/10 space-y-4 animate-in fade-in-0 slide-in-from-top-2 duration-200">
+                  <div style={{ padding: 16, borderTop: `1px solid ${C.border}`, backgroundColor: 'rgba(120,120,120,0.03)' }} className="space-y-4 animate-in fade-in-0 slide-in-from-top-2 duration-200">
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div className="space-y-1.5">
                         <label className={labelClass}>Standard Hours / Week</label>
@@ -887,19 +911,19 @@ export default function OnboardPage() {
           {/* ═══ STEP 4: Review & Confirm ═══ */}
           {currentStep === 4 && (
             <div className="space-y-6 animate-in fade-in-0 slide-in-from-right-4 duration-300">
-              <div className="border-b pb-3">
-                <h2 className="text-base font-black flex items-center gap-2">
-                  <ClipboardCheck className="h-4.5 w-4.5 text-primary" />
+              <div style={{ borderBottom: `1px solid ${C.divider}`, paddingBottom: 12, marginBottom: 24 }}>
+                <h2 style={{ fontSize: 16, fontWeight: 800, color: C.white, display: 'flex', alignItems: 'center', gap: 8, margin: 0 }}>
+                  <ClipboardCheck className="h-5 w-5" style={{ color: C.cyan }} />
                   Review & Confirm
                 </h2>
-                <p className="text-xs text-muted-foreground font-medium mt-0.5">Verify all information before creating the employee profile.</p>
+                <p style={{ fontSize: 12, color: C.muted, margin: '4px 0 0 0' }}>Verify all information before creating the employee profile.</p>
               </div>
 
               {/* Personal Info Review */}
-              <div className="rounded-xl border p-4 space-y-3">
+              <div style={{ border: `1px solid ${C.border}`, borderRadius: 12, padding: 16, backgroundColor: 'rgba(120,120,120,0.01)' }} className="space-y-3">
                 <div className="flex items-center justify-between">
                   <p className="text-xs font-black uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
-                    <User className="h-3.5 w-3.5 text-primary" /> Personal Information
+                    <User className="h-3.5 w-3.5" style={{ color: C.cyan }} /> Personal Information
                   </p>
                   <Button variant="ghost" size="sm" className="text-xs font-bold gap-1 h-7 cursor-pointer text-primary" onClick={() => setCurrentStep(1)}>
                     <Edit className="h-3 w-3" /> Edit
@@ -923,10 +947,10 @@ export default function OnboardPage() {
               </div>
 
               {/* Employment Review */}
-              <div className="rounded-xl border p-4 space-y-3">
+              <div style={{ border: `1px solid ${C.border}`, borderRadius: 12, padding: 16, backgroundColor: 'rgba(120,120,120,0.01)' }} className="space-y-3">
                 <div className="flex items-center justify-between">
                   <p className="text-xs font-black uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
-                    <Briefcase className="h-3.5 w-3.5 text-primary" /> Employment Details
+                    <Briefcase className="h-3.5 w-3.5" style={{ color: C.cyan }} /> Employment Details
                   </p>
                   <Button variant="ghost" size="sm" className="text-xs font-bold gap-1 h-7 cursor-pointer text-primary" onClick={() => setCurrentStep(2)}>
                     <Edit className="h-3 w-3" /> Edit
@@ -939,8 +963,8 @@ export default function OnboardPage() {
                     ['Job Title', employment.jobTitle],
                     ['Department', employment.department || employment.newDepartment],
                     ['Manager', employment.manager === 'none' ? 'No Manager' : employment.manager],
-                    ['Start Date', employment.startDate ? new Date(employment.startDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '—'],
-                    ...(employment.endDate ? [['End Date', new Date(employment.endDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })]] : []),
+                    ['Start Date', employment.startDate ? formatCaliforniaDate(employment.startDate) : '—'],
+                    ...(employment.endDate ? [['End Date', formatCaliforniaDate(employment.endDate)]] : []),
                   ].map(([l, v]) => (
                     <div key={l}>
                       <p className="text-[10px] text-muted-foreground font-medium">{l}</p>
@@ -949,7 +973,7 @@ export default function OnboardPage() {
                   ))}
                 </div>
                 {employment.workLocation === 'office' && employment.addressLine1 && (
-                  <div className="text-sm border-t pt-2 mt-2">
+                  <div style={{ borderTop: `1px solid ${C.divider}` }} className="text-sm pt-2 mt-2">
                     <p className="text-[10px] text-muted-foreground font-medium">Work Address</p>
                     <p className="font-bold">{employment.addressLine1}{employment.addressLine2 ? `, ${employment.addressLine2}` : ''}, {employment.city}, {employment.state} {employment.zip}</p>
                   </div>
@@ -957,10 +981,10 @@ export default function OnboardPage() {
               </div>
 
               {/* Compensation Review */}
-              <div className="rounded-xl border p-4 space-y-3">
+              <div style={{ border: `1px solid ${C.border}`, borderRadius: 12, padding: 16, backgroundColor: 'rgba(120,120,120,0.01)' }} className="space-y-3">
                 <div className="flex items-center justify-between">
                   <p className="text-xs font-black uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
-                    <DollarSign className="h-3.5 w-3.5 text-primary" /> Compensation
+                    <DollarSign className="h-3.5 w-3.5" style={{ color: C.cyan }} /> Compensation
                   </p>
                   <Button variant="ghost" size="sm" className="text-xs font-bold gap-1 h-7 cursor-pointer text-primary" onClick={() => setCurrentStep(3)}>
                     <Edit className="h-3 w-3" /> Edit
@@ -983,7 +1007,7 @@ export default function OnboardPage() {
               </div>
 
               {/* Confirmation Checkbox */}
-              <label className="flex items-start gap-3 p-3 rounded-xl border cursor-pointer hover:bg-muted/20 transition-colors">
+              <label style={{ border: `1px solid ${C.border}` }} className="flex items-start gap-3 p-3 rounded-xl cursor-pointer hover:bg-muted/20 transition-colors">
                 <input
                   type="checkbox"
                   checked={confirmed}
@@ -998,7 +1022,7 @@ export default function OnboardPage() {
           )}
 
           {/* ═══ Navigation Buttons ═══ */}
-          <div className="flex items-center justify-between mt-8 pt-4 border-t">
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 32, paddingTop: 16, borderTop: `1px solid ${C.divider}` }}>
             <Button
               variant="outline"
               size="sm"
@@ -1029,8 +1053,8 @@ export default function OnboardPage() {
               )}
             </div>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
     </div>
   );
 }

@@ -65,14 +65,24 @@ const fmt = (n: number) =>
 
 /* ──────────────────── Seed Data ──────────────────── */
 
+// Avatar hue for each staff member (using the enterprise design palette)
+const STAFF_COLORS: Record<string, string> = {
+  Ramona: '#E64C4C',
+  Tania:  '#E88916',
+  Gladys: '#32C766',
+  Zuli:   '#17B6C7',
+  Eucaria:'#2857DA',
+  Jeimi:  '#74AAD9',
+};
+
 const buildPayroll = (): PayrollEntry[] => {
   const staff = [
-    { id: 1, name: 'Ramona', role: 'Head Housekeeper', initials: 'RM', color: 'bg-rose-500/10 text-rose-700 border-rose-500/20 dark:bg-rose-500/20 dark:text-rose-300', hourlyRate: 22.0, hoursWorked: 80, overtimeHours: 4 },
-    { id: 2, name: 'Tania', role: 'Assistant Housekeeper', initials: 'TN', color: 'bg-amber-500/10 text-amber-700 border-amber-500/20 dark:bg-amber-500/20 dark:text-amber-300', hourlyRate: 19.5, hoursWorked: 78, overtimeHours: 2 },
-    { id: 3, name: 'Gladys', role: 'Lead Housekeeper', initials: 'GD', color: 'bg-emerald-500/10 text-emerald-700 border-emerald-500/20 dark:bg-emerald-500/20 dark:text-emerald-300', hourlyRate: 20.0, hoursWorked: 80, overtimeHours: 6 },
-    { id: 4, name: 'Zuli', role: 'Housekeeper', initials: 'ZL', color: 'bg-violet-500/10 text-violet-700 border-violet-500/20 dark:bg-violet-500/20 dark:text-violet-300', hourlyRate: 17.5, hoursWorked: 76, overtimeHours: 0 },
-    { id: 5, name: 'Eucaria', role: 'Housekeeper', initials: 'EC', color: 'bg-sky-500/10 text-sky-700 border-sky-500/20 dark:bg-sky-500/20 dark:text-sky-300', hourlyRate: 16.5, hoursWorked: 80, overtimeHours: 3 },
-    { id: 6, name: 'Jeimi', role: 'Housekeeper', initials: 'JM', color: 'bg-pink-500/10 text-pink-700 border-pink-500/20 dark:bg-pink-500/20 dark:text-pink-300', hourlyRate: 16.5, hoursWorked: 72, overtimeHours: 0 },
+    { id: 1, name: 'Ramona', role: 'Head Housekeeper',       initials: 'RM', color: STAFF_COLORS.Ramona,  hourlyRate: 22.0, hoursWorked: 80, overtimeHours: 4 },
+    { id: 2, name: 'Tania',  role: 'Assistant Housekeeper',  initials: 'TN', color: STAFF_COLORS.Tania,   hourlyRate: 19.5, hoursWorked: 78, overtimeHours: 2 },
+    { id: 3, name: 'Gladys', role: 'Lead Housekeeper',       initials: 'GD', color: STAFF_COLORS.Gladys,  hourlyRate: 20.0, hoursWorked: 80, overtimeHours: 6 },
+    { id: 4, name: 'Zuli',   role: 'Housekeeper',            initials: 'ZL', color: STAFF_COLORS.Zuli,    hourlyRate: 17.5, hoursWorked: 76, overtimeHours: 0 },
+    { id: 5, name: 'Eucaria',role: 'Housekeeper',            initials: 'EC', color: STAFF_COLORS.Eucaria, hourlyRate: 16.5, hoursWorked: 80, overtimeHours: 3 },
+    { id: 6, name: 'Jeimi',  role: 'Housekeeper',            initials: 'JM', color: STAFF_COLORS.Jeimi,   hourlyRate: 16.5, hoursWorked: 72, overtimeHours: 0 },
   ];
 
   return staff.map((s) => {
@@ -168,18 +178,22 @@ export default function PayrollPage() {
   };
 
   const statusBadge = (status: string) => {
-    const map: Record<string, string> = {
-      Paid: 'bg-emerald-500/10 text-emerald-700 border-emerald-500/20 dark:bg-emerald-500/20 dark:text-emerald-300',
-      Pending: 'bg-amber-500/10 text-amber-700 border-amber-500/20 dark:bg-amber-500/20 dark:text-amber-300',
-      Processing: 'bg-blue-500/10 text-blue-700 border-blue-500/20 dark:bg-blue-500/20 dark:text-blue-300',
+    const styles: Record<string, { bg: string; color: string; border: string }> = {
+      Paid:       { bg: 'rgba(50,199,102,0.1)',  color: '#32C766', border: 'rgba(50,199,102,0.3)' },
+      Pending:    { bg: 'rgba(232,137,22,0.1)',  color: '#E88916', border: 'rgba(232,137,22,0.3)' },
+      Processing: { bg: 'rgba(40,87,218,0.1)',   color: '#2857DA', border: 'rgba(40,87,218,0.3)' },
     };
     const icons: Record<string, React.ReactNode> = {
-      Paid: <CheckCircle className="h-3 w-3" />,
-      Pending: <AlertCircle className="h-3 w-3" />,
+      Paid:       <CheckCircle className="h-3 w-3" />,
+      Pending:    <AlertCircle className="h-3 w-3" />,
       Processing: <Loader2 className="h-3 w-3 animate-spin" />,
     };
+    const s = styles[status] || styles.Pending;
     return (
-      <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold border ${map[status] || ''}`}>
+      <span
+        className="inline-flex items-center gap-1 px-2.5 py-1 rounded-[6px] text-[11px] font-semibold border"
+        style={{ backgroundColor: s.bg, color: s.color, borderColor: s.border }}
+      >
         {icons[status]}
         {status}
       </span>
@@ -193,185 +207,142 @@ export default function PayrollPage() {
       {/* Page Header */}
       <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
         <div>
-          <h1 className="text-xl font-black tracking-tight flex items-center gap-2">
-            <Banknote className="h-6 w-6 text-primary" />
-            Payroll Management
-          </h1>
-          <p className="text-xs text-muted-foreground font-medium mt-1">
+          <h1 className="text-[32px] font-bold tracking-tight text-foreground leading-tight">Payroll Management</h1>
+          <p className="text-[15px] text-muted-foreground mt-1">
             Manage wages, hours, and payment history for all staff
           </p>
         </div>
         <div className="flex items-center gap-3">
-          <div className="px-3 py-1.5 rounded-lg border bg-muted/30 text-xs font-bold text-muted-foreground flex items-center gap-1.5">
-            <CalendarCheck className="h-3.5 w-3.5 text-primary" />
+          <div
+            className="px-3 py-2 rounded-[8px] border text-[13px] font-medium flex items-center gap-1.5"
+            style={{ backgroundColor: 'var(--muted)', borderColor: 'var(--border)', color: 'var(--foreground)' }}
+          >
+            <CalendarCheck className="h-4 w-4" style={{ color: '#17B6C7' }} />
             Jun 16 – Jun 28, 2026 · Biweekly
           </div>
           <Button
-            size="sm"
-            className="font-bold text-xs h-9 gap-1.5 cursor-pointer shadow-xs"
+            className="cursor-pointer"
             onClick={() => setShowRunPayroll(true)}
             disabled={pendingCount === 0}
           >
-            <Play className="h-3.5 w-3.5" />
+            <Play className="h-4 w-4 mr-2" />
             Run Payroll {pendingCount > 0 && `(${pendingCount})`}
           </Button>
         </div>
       </div>
 
-      {/* Summary Stats */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-        <Card className="border shadow-none bg-card">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Total Payroll</p>
-                <p className="text-2xl font-black mt-1 tracking-tight">{fmt(totalGross)}</p>
-                <p className="text-[10px] text-muted-foreground font-semibold mt-0.5">Gross this period</p>
+      {/* Summary KPI Cards */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
+        {[
+          { label: 'Total Payroll',  value: fmt(totalGross), sub: 'Gross this period',           icon: <DollarSign className="h-[18px] w-[18px]" style={{ color: '#32C766' }} />, color: '#32C766', bg: 'rgba(50,199,102,0.1)' },
+          { label: 'Total Hours',    value: totalHours,       sub: `Across ${payroll.length} staff`, icon: <Clock className="h-[18px] w-[18px]" style={{ color: '#17B6C7' }} />,       color: '#17B6C7', bg: 'rgba(23,182,199,0.1)' },
+          { label: 'Avg Hourly Rate',value: fmt(avgRate),     sub: 'CA min $16.00/hr',             icon: <TrendingUp className="h-[18px] w-[18px]" style={{ color: '#2857DA' }} />,    color: '#2857DA', bg: 'rgba(40,87,218,0.1)' },
+          { label: 'Net Payout',     value: fmt(totalNet),    sub: 'After deductions',             icon: <Banknote className="h-[18px] w-[18px]" style={{ color: '#E88916' }} />,      color: '#E88916', bg: 'rgba(232,137,22,0.1)' },
+        ].map((kpi) => (
+          <Card key={kpi.label}>
+            <CardContent className="flex flex-col gap-4 pt-0">
+              <div className="flex items-center justify-between">
+                <p className="text-[13px] font-medium text-muted-foreground">{kpi.label}</p>
+                <div className="h-9 w-9 rounded-[10px] flex items-center justify-center flex-shrink-0" style={{ backgroundColor: kpi.bg }}>
+                  {kpi.icon}
+                </div>
               </div>
-              <div className="h-10 w-10 rounded-xl bg-emerald-500/10 flex items-center justify-center">
-                <DollarSign className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
+              <p className="text-[28px] font-bold leading-none" style={{ color: kpi.color }}>{kpi.value}</p>
+              <div className="flex items-center gap-1.5">
+                <span className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: kpi.color }} />
+                <span className="text-[13px] text-muted-foreground">{kpi.sub}</span>
               </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="border shadow-none bg-card">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Total Hours</p>
-                <p className="text-2xl font-black mt-1 tracking-tight">{totalHours}</p>
-                <p className="text-[10px] text-muted-foreground font-semibold mt-0.5">Across {payroll.length} staff</p>
-              </div>
-              <div className="h-10 w-10 rounded-xl bg-blue-500/10 flex items-center justify-center">
-                <Clock className="h-5 w-5 text-blue-600 dark:text-blue-400" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="border shadow-none bg-card">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Avg Hourly Rate</p>
-                <p className="text-2xl font-black mt-1 tracking-tight">{fmt(avgRate)}</p>
-                <p className="text-[10px] text-muted-foreground font-semibold mt-0.5">CA min $16.00/hr</p>
-              </div>
-              <div className="h-10 w-10 rounded-xl bg-violet-500/10 flex items-center justify-center">
-                <TrendingUp className="h-5 w-5 text-violet-600 dark:text-violet-400" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="border shadow-none bg-card">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Net Payout</p>
-                <p className="text-2xl font-black mt-1 tracking-tight">{fmt(totalNet)}</p>
-                <p className="text-[10px] text-muted-foreground font-semibold mt-0.5">After deductions</p>
-              </div>
-              <div className="h-10 w-10 rounded-xl bg-amber-500/10 flex items-center justify-center">
-                <Banknote className="h-5 w-5 text-amber-600 dark:text-amber-400" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        ))}
       </div>
 
       {/* Payroll Table */}
-      <Card className="border shadow-none bg-card">
-        <CardHeader className="pb-3">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-            <div>
-              <CardTitle className="text-sm font-black flex items-center gap-1.5">
-                <Users className="h-4 w-4 text-primary" />
-                Current Period Payroll
-              </CardTitle>
-              <CardDescription className="text-xs">Jun 16 – Jun 28, 2026 · {payroll.length} employees</CardDescription>
+      <Card>
+        <CardHeader>
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <div className="h-9 w-9 rounded-[10px] flex items-center justify-center" style={{ backgroundColor: 'rgba(23,182,199,0.1)' }}>
+                <Users className="h-[18px] w-[18px]" style={{ color: '#17B6C7' }} />
+              </div>
+              <div>
+                <CardTitle className="text-[18px] font-bold text-foreground">Current Period Payroll</CardTitle>
+                <CardDescription className="text-[13px] mt-0.5">Jun 16 – Jun 28, 2026 · {payroll.length} employees</CardDescription>
+              </div>
             </div>
             <div className="relative w-full sm:w-64">
-              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+              <Search className="absolute left-4 top-[14px] h-4 w-4 text-muted-foreground" />
               <Input
                 placeholder="Search employees…"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-8 h-8 text-xs font-medium bg-muted/30 border"
+                className="pl-11"
               />
             </div>
           </div>
         </CardHeader>
         <CardContent className="p-0">
           <div className="overflow-x-auto">
-            <table className="w-full text-xs">
+            <table className="w-full text-[13px]">
               <thead>
-                <tr className="border-t bg-muted/30">
-                  <th className="text-left font-bold text-muted-foreground uppercase tracking-wider px-4 py-2.5 text-[10px]">Employee</th>
-                  <th className="text-right font-bold text-muted-foreground uppercase tracking-wider px-4 py-2.5 text-[10px]">Rate/hr</th>
-                  <th className="text-right font-bold text-muted-foreground uppercase tracking-wider px-4 py-2.5 text-[10px]">Hours</th>
-                  <th className="text-right font-bold text-muted-foreground uppercase tracking-wider px-4 py-2.5 text-[10px]">OT Hrs</th>
-                  <th className="text-right font-bold text-muted-foreground uppercase tracking-wider px-4 py-2.5 text-[10px]">Gross Pay</th>
-                  <th className="text-right font-bold text-muted-foreground uppercase tracking-wider px-4 py-2.5 text-[10px]">Deductions</th>
-                  <th className="text-right font-bold text-muted-foreground uppercase tracking-wider px-4 py-2.5 text-[10px]">Net Pay</th>
-                  <th className="text-center font-bold text-muted-foreground uppercase tracking-wider px-4 py-2.5 text-[10px]">Status</th>
-                  <th className="text-center font-bold text-muted-foreground uppercase tracking-wider px-4 py-2.5 text-[10px]">Actions</th>
+                <tr style={{ borderTop: '1px solid var(--divider)', backgroundColor: 'var(--card)' }}>
+                  <th className="text-left font-semibold px-4 py-3 text-[11px] uppercase tracking-wider" style={{ color: 'var(--muted-foreground)' }}>Employee</th>
+                  <th className="text-right font-semibold px-4 py-3 text-[11px] uppercase tracking-wider" style={{ color: 'var(--muted-foreground)' }}>Rate/hr</th>
+                  <th className="text-right font-semibold px-4 py-3 text-[11px] uppercase tracking-wider" style={{ color: 'var(--muted-foreground)' }}>Hours</th>
+                  <th className="text-right font-semibold px-4 py-3 text-[11px] uppercase tracking-wider" style={{ color: 'var(--muted-foreground)' }}>OT Hrs</th>
+                  <th className="text-right font-semibold px-4 py-3 text-[11px] uppercase tracking-wider" style={{ color: 'var(--muted-foreground)' }}>Gross Pay</th>
+                  <th className="text-right font-semibold px-4 py-3 text-[11px] uppercase tracking-wider" style={{ color: 'var(--muted-foreground)' }}>Deductions</th>
+                  <th className="text-right font-semibold px-4 py-3 text-[11px] uppercase tracking-wider" style={{ color: 'var(--muted-foreground)' }}>Net Pay</th>
+                  <th className="text-center font-semibold px-4 py-3 text-[11px] uppercase tracking-wider" style={{ color: 'var(--muted-foreground)' }}>Status</th>
+                  <th className="text-center font-semibold px-4 py-3 text-[11px] uppercase tracking-wider" style={{ color: 'var(--muted-foreground)' }}>Actions</th>
                 </tr>
               </thead>
               <tbody>
                 {filtered.map((entry) => (
-                  <tr key={entry.id} className="border-t hover:bg-muted/20 transition-colors">
+                  <tr key={entry.id} className="transition-colors" style={{ borderTop: '1px solid var(--divider)' }}
+                    onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'rgba(23,182,199,0.03)')}
+                    onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = '')}
+                  >
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-2.5">
-                        <span className={`h-8 w-8 rounded-full border flex items-center justify-center text-[10px] font-black uppercase shadow-2xs flex-shrink-0 ${entry.color}`}>
+                        <div
+                          className="h-8 w-8 rounded-full flex items-center justify-center text-[11px] font-bold text-white flex-shrink-0"
+                          style={{ backgroundColor: entry.color }}
+                        >
                           {entry.initials}
-                        </span>
+                        </div>
                         <div>
-                          <p className="font-bold text-foreground">{entry.name}</p>
-                          <p className="text-[10px] text-muted-foreground font-medium">{entry.role}</p>
+                          <p className="font-semibold text-foreground">{entry.name}</p>
+                          <p className="text-[12px] text-muted-foreground">{entry.role}</p>
                         </div>
                       </div>
                     </td>
-                    <td className="text-right px-4 py-3 font-bold tabular-nums">{fmt(entry.hourlyRate)}</td>
-                    <td className="text-right px-4 py-3 font-semibold tabular-nums">{entry.hoursWorked}</td>
-                    <td className="text-right px-4 py-3 font-semibold tabular-nums">
+                    <td className="text-right px-4 py-3 font-semibold tabular-nums text-foreground">{fmt(entry.hourlyRate)}</td>
+                    <td className="text-right px-4 py-3 font-medium tabular-nums text-foreground">{entry.hoursWorked}</td>
+                    <td className="text-right px-4 py-3 font-medium tabular-nums">
                       {entry.overtimeHours > 0 ? (
-                        <span className="text-amber-600 dark:text-amber-400">{entry.overtimeHours}</span>
+                        <span style={{ color: '#E88916' }}>{entry.overtimeHours}</span>
                       ) : (
                         <span className="text-muted-foreground">—</span>
                       )}
                     </td>
-                    <td className="text-right px-4 py-3 font-bold tabular-nums">{fmt(entry.grossPay)}</td>
-                    <td className="text-right px-4 py-3 font-semibold tabular-nums text-red-600 dark:text-red-400">
+                    <td className="text-right px-4 py-3 font-semibold tabular-nums text-foreground">{fmt(entry.grossPay)}</td>
+                    <td className="text-right px-4 py-3 font-medium tabular-nums" style={{ color: '#E64C4C' }}>
                       −{fmt(entry.deductions)}
                     </td>
-                    <td className="text-right px-4 py-3 font-black tabular-nums text-emerald-700 dark:text-emerald-300">
+                    <td className="text-right px-4 py-3 font-bold tabular-nums" style={{ color: '#32C766' }}>
                       {fmt(entry.netPay)}
                     </td>
                     <td className="text-center px-4 py-3">{statusBadge(entry.status)}</td>
                     <td className="text-center px-4 py-3">
                       <div className="flex items-center justify-center gap-1">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-7 w-7 cursor-pointer text-muted-foreground hover:text-foreground"
-                          title="View Payslip"
-                          onClick={() => setViewingPayslip(entry)}
-                        >
-                          <FileText className="h-3.5 w-3.5" />
+                        <Button variant="ghost" size="icon" className="h-8 w-8 cursor-pointer text-muted-foreground hover:text-foreground" title="View Payslip" onClick={() => setViewingPayslip(entry)}>
+                          <FileText className="h-4 w-4" />
                         </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-7 w-7 cursor-pointer text-muted-foreground hover:text-foreground"
-                          title="Edit Pay Rate"
-                          onClick={() => {
-                            setEditingRate(entry);
-                            setEditRateValue(entry.hourlyRate.toString());
-                          }}
+                        <Button variant="ghost" size="icon" className="h-8 w-8 cursor-pointer text-muted-foreground hover:text-foreground" title="Edit Pay Rate"
+                          onClick={() => { setEditingRate(entry); setEditRateValue(entry.hourlyRate.toString()); }}
                         >
-                          <Edit className="h-3.5 w-3.5" />
+                          <Edit className="h-4 w-4" />
                         </Button>
                       </div>
                     </td>
@@ -379,24 +350,21 @@ export default function PayrollPage() {
                 ))}
                 {filtered.length === 0 && (
                   <tr>
-                    <td colSpan={9} className="text-center py-12 text-muted-foreground font-medium">
-                      No employees match your search.
-                    </td>
+                    <td colSpan={9} className="text-center py-12 text-muted-foreground font-medium">No employees match your search.</td>
                   </tr>
                 )}
               </tbody>
-              {/* Totals Footer */}
               <tfoot>
-                <tr className="border-t bg-muted/20 font-black">
-                  <td className="px-4 py-2.5 text-xs">Totals</td>
-                  <td className="px-4 py-2.5"></td>
-                  <td className="text-right px-4 py-2.5 text-xs tabular-nums">{payroll.reduce((s, p) => s + p.hoursWorked, 0)}</td>
-                  <td className="text-right px-4 py-2.5 text-xs tabular-nums text-amber-600 dark:text-amber-400">{payroll.reduce((s, p) => s + p.overtimeHours, 0)}</td>
-                  <td className="text-right px-4 py-2.5 text-xs tabular-nums">{fmt(totalGross)}</td>
-                  <td className="text-right px-4 py-2.5 text-xs tabular-nums text-red-600 dark:text-red-400">−{fmt(payroll.reduce((s, p) => s + p.deductions, 0))}</td>
-                  <td className="text-right px-4 py-2.5 text-xs tabular-nums text-emerald-700 dark:text-emerald-300">{fmt(totalNet)}</td>
-                  <td className="px-4 py-2.5"></td>
-                  <td className="px-4 py-2.5"></td>
+                <tr style={{ borderTop: '1px solid var(--border)', backgroundColor: 'var(--card)' }}>
+                  <td className="px-4 py-3 text-[13px] font-semibold" style={{ color: 'var(--muted-foreground)' }}>Totals</td>
+                  <td className="px-4 py-3"></td>
+                  <td className="text-right px-4 py-3 text-[13px] font-bold tabular-nums text-foreground">{payroll.reduce((s, p) => s + p.hoursWorked, 0)}</td>
+                  <td className="text-right px-4 py-3 text-[13px] font-bold tabular-nums" style={{ color: '#E88916' }}>{payroll.reduce((s, p) => s + p.overtimeHours, 0)}</td>
+                  <td className="text-right px-4 py-3 text-[13px] font-bold tabular-nums text-foreground">{fmt(totalGross)}</td>
+                  <td className="text-right px-4 py-3 text-[13px] font-bold tabular-nums" style={{ color: '#E64C4C' }}>−{fmt(payroll.reduce((s, p) => s + p.deductions, 0))}</td>
+                  <td className="text-right px-4 py-3 text-[13px] font-bold tabular-nums" style={{ color: '#32C766' }}>{fmt(totalNet)}</td>
+                  <td className="px-4 py-3"></td>
+                  <td className="px-4 py-3"></td>
                 </tr>
               </tfoot>
             </table>

@@ -2,32 +2,33 @@
 
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/providers/AuthProvider';
-import { useTheme } from 'next-themes';
+import { useTheme } from '@/providers/ThemeProvider';
 import { usePathname, useRouter } from 'next/navigation';
 import {
-  LayoutDashboard,
+  LayoutGrid,
+  Tags,
+  AppWindow,
+  User,
   Users,
-  Banknote,
-  Package,
-  Clock,
-  Building,
-  Key,
-  Wrench,
-  BarChart3,
-  Settings,
-  LogOut,
-  Search,
-  Bell,
-  Sun,
-  Moon,
+  ShoppingCart,
+  Wallet,
+  PieChart,
+  Lock,
   ChevronLeft,
   ChevronRight,
   Menu,
   Building2,
+  Plus,
+  MessageSquare,
+  ChevronDown,
+  Search,
+  Sun,
+  Moon,
+  Bell,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -50,7 +51,20 @@ interface SidebarItem {
   name: string;
   icon: React.ComponentType<any>;
   href: string;
+  locked?: boolean;
 }
+
+const getInitials = (name: string | undefined): string => {
+  if (!name) return 'SS';
+  // Replace dots, hyphens, and other separator characters with spaces to support S.Sultana
+  const cleanName = name.replace(/[.-]/g, ' ');
+  const parts = cleanName.trim().split(/\s+/).filter(Boolean);
+  if (parts.length === 0) return 'SS';
+  if (parts.length === 1) return parts[0].charAt(0).toUpperCase();
+  const first = parts[0].charAt(0).toUpperCase();
+  const last = parts[parts.length - 1].charAt(0).toUpperCase();
+  return `${first}${last}`;
+};
 
 export default function DashboardLayout({
   children,
@@ -66,7 +80,9 @@ export default function DashboardLayout({
   const [isMobileOpen, setIsMobileOpen] = useState(false);
 
   // Dynamically resolve active tab based on router pathname
-  const activeTab = pathname.includes('/dashboard/staff') ? 'Staff' : 'Dashboard';
+  let activeTab = 'Overview';
+  if (pathname.includes('/dashboard/staff')) activeTab = 'Staff';
+  else if (pathname.includes('/dashboard/payroll')) activeTab = 'Payroll';
 
   const [notifications, setNotifications] = useState([
     {
@@ -144,16 +160,13 @@ export default function DashboardLayout({
   };
 
   const navigation: SidebarItem[] = [
-    { name: 'Dashboard', icon: LayoutDashboard, href: '/dashboard' },
+    { name: 'Overview', icon: LayoutGrid, href: '/dashboard' },
     { name: 'Staff', icon: Users, href: '/dashboard/staff' },
-    { name: 'Payroll', icon: Banknote, href: '/dashboard/payroll' },
-    { name: 'Inventory', icon: Package, href: '#' },
-    { name: 'Timesheets', icon: Clock, href: '#' },
-    { name: 'Properties', icon: Building, href: '#' },
-    { name: 'Rooms', icon: Key, href: '#' },
-    { name: 'Maintenance', icon: Wrench, href: '#' },
-    { name: 'Reports', icon: BarChart3, href: '#' },
-    { name: 'Settings', icon: Settings, href: '#' },
+    { name: 'Product', icon: AppWindow, href: '#' },
+    { name: 'Customer', icon: User, href: '#' },
+    { name: 'Payroll', icon: ShoppingCart, href: '/dashboard/payroll' },
+    { name: 'Cash flow', icon: Wallet, href: '#', locked: true },
+    { name: 'Report', icon: PieChart, href: '#', locked: true },
   ];
 
   const handleTabClick = (item: SidebarItem) => {
@@ -175,248 +188,182 @@ export default function DashboardLayout({
   };
 
   return (
-    <div className="flex min-h-screen bg-background text-foreground transition-colors duration-200">
-      {/* Mobile Drawer Backdrop */}
-      {isMobileOpen && (
-        <div
-          className="fixed inset-0 z-40 bg-background/80 backdrop-blur-sm lg:hidden"
-          onClick={() => setIsMobileOpen(false)}
-        />
-      )}
-
-      {/* Sidebar - Desktop & Mobile Drawer */}
-      <aside
-        className={`fixed inset-y-0 left-0 z-50 flex flex-col border-r bg-sidebar border-border transition-all duration-300
-          ${isCollapsed ? 'w-16' : 'w-64'} 
-          ${isMobileOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
-        `}
-      >
-        {/* Sidebar Header */}
-        <div className="flex h-16 items-center justify-between px-4 border-b">
-          <div className="flex items-center space-x-2.5 overflow-hidden">
-            <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-              <Building2 className="h-5 w-5" />
+    <div className="flex flex-col min-h-screen bg-background text-foreground transition-colors duration-200 font-sans">
+      {/* Top Navbar - Full Width spanning left to right edge */}
+      <header className="sticky top-0 z-30 flex h-[80px] w-full bg-navbar border-b border-border flex-shrink-0">
+        <div className="w-full max-w-[1700px] mx-auto flex items-center justify-between px-8 h-full">
+          {/* Left Side: Brand Logo (aligned with sidebar) and Search Input (aligned with main content) */}
+          <div className="flex items-center flex-1">
+            <div className="flex items-center justify-center gap-3 w-[270px] flex-shrink-0">
+              {/* Gradient S Ribbon Logo */}
+              <svg width="28" height="28" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" className="flex-shrink-0">
+                <defs>
+                  <linearGradient id="logo-grad-header" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stopColor="#ec4899" />
+                    <stop offset="50%" stopColor="#a855f7" />
+                    <stop offset="100%" stopColor="#3b82f6" />
+                  </linearGradient>
+                </defs>
+                <path d="M30 25 C 55 25, 70 25, 70 42 C 70 54, 30 56, 30 68 C 30 85, 45 85, 70 85" 
+                  stroke="url(#logo-grad-header)" strokeWidth="13" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+              <span className="font-extrabold text-[16px] tracking-tight text-foreground">PropertyOS</span>
             </div>
-            {!isCollapsed && (
-              <span className="font-bold text-lg tracking-tight truncate">
-                PropertyOS
-              </span>
-            )}
-          </div>
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => setIsCollapsed(!isCollapsed)}
-            className="hidden lg:flex h-7 w-7 rounded-md border text-muted-foreground hover:text-foreground"
-            aria-label={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-          >
-            {isCollapsed ? (
-              <ChevronRight className="h-4 w-4" />
-            ) : (
-              <ChevronLeft className="h-4 w-4" />
-            )}
-          </Button>
-        </div>
 
-        {/* Navigation Items */}
-        <nav className="flex-1 space-y-1.5 px-3 py-4 overflow-y-auto">
-          {navigation.map((item) => {
-            const Icon = item.icon;
-            const isActive = activeTab === item.name;
-            return (
-              <button
-                key={item.name}
-                onClick={() => handleTabClick(item)}
-                className={`flex w-full items-center rounded-md px-3 py-2 text-sm font-medium transition-all group focus:outline-none focus:ring-1 focus:ring-primary/20
-                  ${
-                    isActive
-                      ? 'bg-primary text-primary-foreground'
-                      : 'text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground'
-                  }
-                `}
-                title={isCollapsed ? item.name : undefined}
-              >
-                <Icon
-                  className={`h-5 w-5 flex-shrink-0 transition-colors
-                    ${isCollapsed ? 'mr-0' : 'mr-3'}
-                    ${isActive ? 'text-primary-foreground' : 'text-muted-foreground group-hover:text-sidebar-accent-foreground'}
-                  `}
-                />
-                {!isCollapsed && <span className="truncate">{item.name}</span>}
-              </button>
-            );
-          })}
-        </nav>
+            {/* Gap to align search bar exactly with start of greeting text */}
+            <div className="hidden lg:block w-8 flex-shrink-0" />
 
-
-      </aside>
-
-      {/* Main Container */}
-      <div
-        className={`flex flex-col flex-1 min-h-screen transition-all duration-300
-          ${isCollapsed ? 'lg:pl-16' : 'lg:pl-64'}
-        `}
-      >
-        {/* Top Navbar */}
-        <header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b bg-background/95 backdrop-blur px-4 md:px-6">
-          {/* Mobile hamburger menu */}
-          <div className="flex items-center space-x-4">
+            {/* Mobile hamburger menu (hidden on desktop) */}
             <Button
               variant="ghost"
               size="icon"
-              className="lg:hidden h-9 w-9 text-muted-foreground hover:text-foreground border"
+              className="lg:hidden h-9 w-9 text-muted-foreground hover:text-foreground mr-2"
               onClick={() => setIsMobileOpen(true)}
               aria-label="Open navigation drawer"
             >
               <Menu className="h-5 w-5" />
             </Button>
 
-            {/* Breadcrumb section */}
-            <div className="hidden sm:block">
-              <Breadcrumb>
-                <BreadcrumbList>
-                  <BreadcrumbItem>
-                    <BreadcrumbLink href="#">PropertyOS</BreadcrumbLink>
-                  </BreadcrumbItem>
-                  <BreadcrumbSeparator />
-                  <BreadcrumbItem>
-                    <BreadcrumbPage>{activeTab}</BreadcrumbPage>
-                  </BreadcrumbItem>
-                </BreadcrumbList>
-              </Breadcrumb>
-            </div>
-          </div>
-
-          {/* Topbar Actions */}
-          <div className="flex items-center space-x-4">
-            {/* Search Input */}
-            <div className="relative w-40 sm:w-60 md:w-72">
-              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground pointer-events-none" />
+            {/* Search Input (Pill Shaped) */}
+            <div className="relative w-full max-w-sm hidden sm:block">
+              <Search className="absolute left-4 top-[14px] h-4 w-4 text-muted-foreground pointer-events-none" />
               <Input
                 type="search"
-                placeholder="Search rooms, guest, status..."
-                className="pl-9 h-9 bg-muted/40 border-muted focus-visible:ring-primary w-full"
+                placeholder="Search here..."
+                className="pl-11 bg-input w-full shadow-none text-foreground"
                 onChange={(e) => handleSearch(e.target.value)}
               />
             </div>
+          </div>
 
-            {/* Dark Mode toggle */}
+          {/* Right Side: Theme Toggle & Profile Dropdown */}
+          <div className="flex items-center justify-end space-x-3.5">
+            {/* Theme Toggle (Dark Mode) */}
             <Button
               variant="ghost"
               size="icon"
-              className="h-9 w-9 text-muted-foreground hover:text-foreground border rounded-md"
+              className="h-[42px] w-[42px] rounded-full bg-card/60 hover:bg-card border border-border text-muted-foreground hover:text-foreground flex items-center justify-center cursor-pointer"
               onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-              aria-label="Toggle visual theme"
+              aria-label="Toggle theme"
             >
-              <Sun className="h-4 w-4 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
-              <Moon className="absolute h-4 w-4 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
+              <Sun className="h-4.5 w-4.5 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
+              <Moon className="absolute h-4.5 w-4.5 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
             </Button>
-
-            {/* Notifications Dropdown */}
-            <DropdownMenu>
-              <DropdownMenuTrigger className="relative h-9 w-9 text-muted-foreground hover:text-foreground border rounded-md flex items-center justify-center cursor-pointer focus:outline-none focus:ring-1 focus:ring-primary/20">
-                <Bell className="h-4 w-4" />
-                {unreadCount > 0 && (
-                  <span className="absolute right-2 top-2 h-1.5 w-1.5 rounded-full bg-primary animate-pulse" />
-                )}
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-80 p-2 bg-card border shadow-lg rounded-xl">
-                <div className="text-xs font-bold px-2 py-1.5 flex justify-between items-center border-b pb-2 mb-1">
-                  <span>Operational Notifications</span>
-                  {unreadCount > 0 && (
-                    <button
-                      onClick={markAllRead}
-                      className="text-[10px] font-semibold text-primary hover:underline cursor-pointer focus:outline-none"
-                    >
-                      Mark all read
-                    </button>
-                  )}
-                </div>
-                <div className="max-h-64 overflow-y-auto space-y-1 py-1">
-                  {notifications.length === 0 ? (
-                    <div className="text-center py-6 text-xs text-muted-foreground">
-                      No notifications yet
-                    </div>
-                  ) : (
-                    notifications.map((notif) => (
-                      <DropdownMenuItem
-                        key={notif.id}
-                        className={`text-xs p-2.5 rounded-lg flex flex-col items-start gap-1 cursor-pointer focus:bg-muted ${
-                          !notif.read ? 'bg-primary/5 font-semibold' : 'opacity-70'
-                        }`}
-                        onClick={() => markRead(notif.id)}
-                      >
-                        <div className="flex justify-between items-center w-full">
-                          <span className={`text-[9px] font-extrabold uppercase tracking-wider ${
-                            notif.type === 'success' ? 'text-emerald-500' :
-                            notif.type === 'alert' ? 'text-amber-500' : 'text-blue-500'
-                          }`}>
-                            {notif.category}
-                          </span>
-                          <span className="text-[9px] text-muted-foreground font-medium">{notif.time}</span>
-                        </div>
-                        <p className="text-foreground text-left text-[11px] leading-tight font-medium mt-0.5">{notif.message}</p>
-                      </DropdownMenuItem>
-                    ))
-                  )}
-                </div>
-              </DropdownMenuContent>
-            </DropdownMenu>
 
             {/* User Dropdown */}
             <DropdownMenu>
-              <DropdownMenuTrigger className="relative h-9 w-9 rounded-full border bg-transparent hover:bg-muted flex items-center justify-center cursor-pointer focus:outline-none focus:ring-1 focus:ring-primary/20">
-                <Avatar className="h-8 w-8">
-                  <AvatarFallback className="bg-primary/10 text-primary font-semibold text-xs uppercase">
-                    {user?.name ? user.name.slice(0, 2) : 'AD'}
+              <DropdownMenuTrigger className="relative flex items-center space-x-2.5 rounded-full hover:bg-card/50 p-1 cursor-pointer focus:outline-none transition-colors ml-1">
+                <Avatar className="h-9 w-9 border border-border">
+                  {user?.avatarUrl && (
+                    <AvatarImage src={user.avatarUrl} alt={user.name || 'User Profile'} />
+                  )}
+                  <AvatarFallback className="font-bold text-xs uppercase flex items-center justify-center h-full w-full"
+                    style={{ backgroundColor: 'rgba(59, 130, 246, 0.12)', color: '#3b82f6' }}>
+                    {getInitials(user?.name || 'S.Sultana')}
                   </AvatarFallback>
                 </Avatar>
+                <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />
               </DropdownMenuTrigger>
-              <DropdownMenuContent className="w-56" align="end">
-                <div className="px-2.5 py-2 text-xs text-muted-foreground font-normal">
-                  <div className="flex flex-col space-y-1">
-                    <p className="text-sm font-semibold leading-none text-foreground">{user?.name || 'Administrator'}</p>
-                    <p className="text-xs leading-none text-muted-foreground">
-                      {user?.email || 'admin@propertyos.com'}
-                    </p>
-                  </div>
+              <DropdownMenuContent className="w-52 rounded-[16px] border border-border p-1.5 bg-popover text-popover-foreground" align="end">
+                <div className="px-3 py-2 text-xs font-bold text-muted-foreground uppercase tracking-wider">
+                  {user?.name || 'S.Sultana'}
                 </div>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem className="text-xs font-medium cursor-pointer">
-                  Role: <span className="ml-1 font-semibold text-primary">{user?.role || 'Admin'}</span>
-                </DropdownMenuItem>
+                <DropdownMenuSeparator className="bg-divider" />
                 <DropdownMenuItem
                   onClick={() => {
                     const item = navigation.find((n) => n.name === 'Settings');
                     if (item) handleTabClick(item);
                   }}
-                  className="cursor-pointer text-xs"
+                  className="cursor-pointer text-xs rounded-[8px] hover:bg-accent hover:text-accent-foreground text-foreground px-3 py-2"
                 >
                   Manage Account Settings
                 </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={handleLogout} className="text-destructive cursor-pointer text-xs font-semibold">
+                <DropdownMenuSeparator className="bg-divider" />
+                <DropdownMenuItem onClick={handleLogout} className="text-destructive cursor-pointer text-xs font-semibold rounded-[8px] hover:bg-red-500/10 px-3 py-2">
                   Log out
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
           </div>
-        </header>
+        </div>
+      </header>
 
-        {/* Dashboard Main Content */}
-        <main className="flex-1 p-4 md:p-6 lg:p-8 space-y-6 overflow-y-auto">
-          {activeTab === 'Dashboard' || activeTab === 'Staff' ? (
-            children
-          ) : (
-            <div className="flex h-[60vh] flex-col items-center justify-center border border-dashed rounded-lg p-8 text-center bg-card">
-              <Building className="h-10 w-10 text-muted-foreground mb-4" />
-              <h2 className="text-lg font-bold">{activeTab} Module</h2>
-              <p className="text-sm text-muted-foreground mt-2 max-w-sm">
-                This feature is currently under construction and will be fully integrated during Phase 2 development.
-              </p>
-            </div>
-          )}
-        </main>
+      {/* Main Layout Container (Centered with max-width) */}
+      <div className="w-full max-w-[1700px] flex flex-1 relative mx-auto px-8 gap-8">
+        
+        {/* Mobile Drawer Backdrop */}
+        {isMobileOpen && (
+          <div
+            className="fixed inset-0 z-40 bg-background/80 backdrop-blur-sm lg:hidden"
+            onClick={() => setIsMobileOpen(false)}
+          />
+        )}
+
+        {/* Sidebar - Desktop Floating Card & Mobile Drawer */}
+        <aside
+          className={`fixed inset-y-0 left-0 z-50 flex flex-col bg-sidebar transition-all duration-150
+            w-[270px]
+            ${isMobileOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
+            lg:sticky lg:top-[104px] lg:h-[760px] lg:z-30 lg:translate-x-0 lg:flex-shrink-0
+            lg:border lg:border-border lg:rounded-3xl lg:mt-6 border-r border-border
+          `}
+        >
+          {/* Navigation Items */}
+          <nav className="flex-1 space-y-3 px-4 py-6 overflow-y-auto flex flex-col">
+            {navigation.map((item) => {
+              const Icon = item.icon;
+              const isActive = activeTab === item.name;
+              return (
+                <button
+                  key={item.name}
+                  onClick={() => handleTabClick(item)}
+                  className={`relative flex items-center h-[50px] rounded-full transition-all group focus:outline-none px-5 mx-2
+                    ${
+                      isActive
+                        ? 'text-white bg-[#23262b] font-bold shadow-md'
+                        : 'text-[#8d8d8d] hover:text-foreground hover:bg-black/[0.04] dark:hover:bg-white/[0.03] font-medium'
+                    }
+                  `}
+                >
+                  {item.name === 'Overview' ? (
+                    <LayoutGrid 
+                      className="h-[20px] w-[20px] flex-shrink-0 mr-4" 
+                      strokeWidth={isActive ? 2.5 : 1.8} 
+                      fill={isActive ? 'currentColor' : 'none'} 
+                    />
+                  ) : (
+                    <Icon 
+                      className="h-[20px] w-[20px] flex-shrink-0 mr-4" 
+                      strokeWidth={isActive ? 2.5 : 1.8} 
+                    />
+                  )}
+                  <span className="text-[15px]">{item.name}</span>
+                  {item.locked && (
+                    <Lock size={12} className="ml-auto text-[#8d8d8d]/50 group-hover:text-foreground/60 transition-all" />
+                  )}
+                </button>
+              );
+            })}
+          </nav>
+        </aside>
+
+        {/* Main Content Area */}
+        <div className="flex-1 flex flex-col min-w-0">
+          <main className="flex-1 w-full py-6 overflow-y-auto bg-background">
+            {activeTab === 'Overview' || activeTab === 'Staff' ? (
+              children
+            ) : (
+              <div className="flex h-[60vh] flex-col items-center justify-center border border-dashed border-card rounded-3xl p-8 text-center bg-card/30 mt-6">
+                <Building2 className="h-10 w-10 text-muted-foreground mb-4" />
+                <h2 className="text-lg font-bold">{activeTab} Module</h2>
+                <p className="text-sm text-muted-foreground mt-2 max-w-sm">
+                  This feature is currently under construction and will be fully integrated during Phase 2 development.
+                </p>
+              </div>
+            )}
+          </main>
+        </div>
+
       </div>
     </div>
   );

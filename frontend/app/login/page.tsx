@@ -5,7 +5,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { useAuth } from '@/providers/AuthProvider';
-import { useTheme } from 'next-themes';
+import { useTheme } from '@/providers/ThemeProvider';
 import { Eye, EyeOff, Loader2, Moon, Sun, ShieldAlert, Building2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
