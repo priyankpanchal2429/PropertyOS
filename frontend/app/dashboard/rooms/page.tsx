@@ -327,9 +327,12 @@ export default function RoomsLayoutPage() {
                                 {/* Bed Icon directly in room card */}
                                 <div className="flex flex-col items-center justify-center">
                                   {getRoomIcon(room.type, colors.rawColor)}
-                                  {room.type === '2 Queen Beds' && (
-                                    <span className="text-[7px] font-black text-purple-500 uppercase tracking-tight leading-none mt-1">2 Queen Beds</span>
-                                  )}
+                                  <span 
+                                    className="text-[7px] font-black uppercase tracking-tight leading-none mt-1"
+                                    style={{ color: colors.rawColor }}
+                                  >
+                                    {room.type}
+                                  </span>
                                 </div>
 
                                 {/* Out-of-the-box Tactile Tooltip Popover */}
