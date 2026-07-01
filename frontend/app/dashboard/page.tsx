@@ -344,24 +344,54 @@ export default function DashboardPage() {
 
   const selectedDayName = DAYS[selectedDate.getDay() === 0 ? 6 : selectedDate.getDay() - 1];
 
-  // Overwrite the selected day's item in weeklyOccupancy with the new occupancy rate
-  const activeWeeklyOccupancy = weeklyOccupancy.map((item) => {
-    if (item.day === selectedDayName) {
-      return { ...item, rate: stats.occupancyRate };
-    }
-    return item;
+  // Dynamically scale weekly occupancy based on selected day's actual rate
+  const dayMultipliers: Record<string, number> = {
+    Mon: 0.85,
+    Tue: 0.90,
+    Wed: 0.95,
+    Thu: 1.0,
+    Fri: 1.15,
+    Sat: 1.25,
+    Sun: 1.10,
+  };
+
+  const selectedDayMultiplier = dayMultipliers[selectedDayName] || 1.0;
+
+  const activeWeeklyOccupancy = DAYS.map((day) => {
+    const mult = dayMultipliers[day] || 1.0;
+    const rate = stats.totalRooms > 0
+      ? Math.min(100, Math.round(stats.occupancyRate * (mult / selectedDayMultiplier)))
+      : 0;
+    return { day, rate };
   });
 
-  const activeOccupancy = timeRange === 'today' ? todayOccupancy : activeWeeklyOccupancy;
+  const baseTodayOccupancy = [
+    { day: '08:00', multiplier: 0.6 },
+    { day: '10:00', multiplier: 0.8 },
+    { day: '12:00', multiplier: 1.2 },
+    { day: '14:00', multiplier: 1.6 },
+    { day: '16:00', multiplier: 1.4 },
+    { day: '18:00', multiplier: 1.0 },
+    { day: '20:00', multiplier: 0.7 }
+  ];
+
+  const activeTodayOccupancy = baseTodayOccupancy.map(item => ({
+    day: item.day,
+    rate: stats.totalRooms > 0
+      ? Math.min(100, Math.round(stats.occupancyRate * item.multiplier))
+      : 0
+  }));
+
+  const activeOccupancy = timeRange === 'today' ? activeTodayOccupancy : activeWeeklyOccupancy;
 
   const isTodaySlot = (idx: number, dayName: string) => {
     if (timeRange === 'week') {
       return dayName === selectedDayName;
     } else {
       const currentHour = getCaliforniaDate().getHours();
-      let closestHourIdx = todayOccupancy.length - 1;
+      let closestHourIdx = activeTodayOccupancy.length - 1;
       let minDiff = 24;
-      todayOccupancy.forEach((item, i) => {
+      activeTodayOccupancy.forEach((item, i) => {
         const slotHour = parseInt(item.day.split(':')[0], 10);
         const diff = Math.abs(currentHour - slotHour);
         if (diff < minDiff) {
