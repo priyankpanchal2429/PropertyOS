@@ -316,10 +316,10 @@ export default function RoomsLayoutPage() {
                             return (
                               <div
                                 key={room.number}
-                                className="relative group w-20 h-16 rounded-2xl border bg-[var(--card)] border-[var(--border)] hover:border-foreground/30 hover:-translate-y-1 transition-all duration-200 flex flex-col items-center justify-center gap-0.5 cursor-pointer shadow-sm"
+                                className="relative w-24 h-20 rounded-2xl border bg-[var(--card)] border-[var(--border)] flex flex-col items-center justify-center gap-1 cursor-pointer shadow-sm"
                               >
-                                {/* Compact Room Number */}
-                                <span className="text-xs font-black text-foreground tracking-tight">
+                                {/* Room Number */}
+                                <span className="text-sm font-black text-foreground tracking-tight">
                                   {room.number}
                                 </span>
 
@@ -327,35 +327,11 @@ export default function RoomsLayoutPage() {
                                 <div className="flex flex-col items-center justify-center">
                                   {getRoomIcon(room.type, colors.rawColor)}
                                   <span 
-                                    className="text-[7px] font-black uppercase tracking-tight leading-none mt-1"
+                                    className="text-[8px] font-black uppercase tracking-tight leading-none mt-1.5"
                                     style={{ color: colors.rawColor }}
                                   >
                                     {room.type}
                                   </span>
-                                </div>
-
-                                {/* Out-of-the-box Tactile Tooltip Popover */}
-                                <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-3 hidden group-hover:flex flex-col z-30 w-52 p-3 rounded-2xl border bg-[var(--card)] text-[var(--foreground)] shadow-xl border-[var(--border)] gap-2 transition-all duration-150">
-                                  <div className="flex items-center justify-between pb-1.5 border-b border-[var(--border)]">
-                                    <span className="text-xs font-black">Room {room.number}</span>
-                                    <span className="text-[9px] font-bold text-muted-foreground bg-muted/20 px-1.5 py-0.5 rounded">
-                                      Floor {room.floor}
-                                    </span>
-                                  </div>
-                                  
-                                  <div className="flex items-center gap-2">
-                                    <div className={`p-1.5 rounded-lg ${colors.bg}`}>
-                                      {getRoomIcon(room.type, colors.rawColor)}
-                                    </div>
-                                    <span className="text-[10px] font-extrabold text-foreground">{room.type}</span>
-                                  </div>
-
-                                  <div className="text-[9px] text-muted-foreground leading-relaxed border-t border-[var(--border)] pt-1.5">
-                                    PropertyOS Master layout configuration for hotel operations.
-                                  </div>
-
-                                  {/* Tooltip Arrow */}
-                                  <div className="absolute top-full left-1/2 -translate-x-1/2 w-0 h-0 border-l-[6px] border-l-transparent border-r-[6px] border-r-transparent border-t-[6px]" style={{ borderTopColor: 'var(--border)' }} />
                                 </div>
                               </div>
                             );
