@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { formatCaliforniaDate } from '@/lib/timezone';
 import {
@@ -87,8 +87,22 @@ export default function StaffPage() {
   const [editingStaff, setEditingStaff] = useState<StaffProfile | null>(null);
   const [resigningStaff, setResigningStaff] = useState<StaffProfile | null>(null);
 
-  // Initial Seed Staff Members (6 housekeepers requested)
+  // Initial Seed Staff Members
   const [staffList, setStaffList] = useState<StaffProfile[]>([]);
+
+  // Load any newly onboarded employees from localStorage and merge with seed
+  useEffect(() => {
+    try {
+      const stored = JSON.parse(localStorage.getItem('propertyos_staff') || '[]') as StaffProfile[];
+      if (stored.length > 0) {
+        setStaffList((prev) => {
+          const existingIds = new Set(prev.map((s) => s.id));
+          const newOnes = stored.filter((s) => !existingIds.has(s.id));
+          return newOnes.length > 0 ? [...prev, ...newOnes] : prev;
+        });
+      }
+    } catch (e) {}
+  }, []);
 
   // Form states for editing housekeeper
   const [editName, setEditName] = useState('');

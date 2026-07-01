@@ -340,6 +340,28 @@ export default function OnboardPage() {
     // Generate employee ID
     const id = `EMP-${String(Math.floor(Math.random() * 9000) + 1000)}`;
     setCreatedId(id);
+
+    // Persist new employee to localStorage so Staff page picks it up
+    const colors = ['#2857DA', '#32C766', '#E88916', '#a855f7', '#E64C4C', '#45D7E8', '#74AAD9', '#F4B63F'];
+    const newEmployee = {
+      id: Date.now(),
+      name: `${personal.firstName} ${personal.lastName}`.trim(),
+      role: employment.jobTitle || 'Housekeeper',
+      initials: (`${personal.firstName[0] || ''}${personal.lastName[0] || ''}`).toUpperCase(),
+      color: colors[Math.floor(Math.random() * colors.length)],
+      status: 'On Duty' as const,
+      email: personal.email,
+      phone: personal.phone,
+      rating: 4.5,
+      roomsCleaned: 0,
+      creditsEarned: 0,
+      joinedDate: employment.startDate || new Date().toISOString().split('T')[0],
+    };
+    try {
+      const existing = JSON.parse(localStorage.getItem('propertyos_staff') || '[]');
+      localStorage.setItem('propertyos_staff', JSON.stringify([...existing, newEmployee]));
+    } catch (e) {}
+
     localStorage.removeItem(DRAFT_KEY);
     setShowSuccess(true);
     toast.success('Employee created successfully!');
