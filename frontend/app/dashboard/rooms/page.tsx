@@ -131,11 +131,22 @@ function RoomCard({
   const [isHousekeeperOpen, setIsHousekeeperOpen] = useState(false);
   const [hkSearch, setHkSearch] = useState('');
   
+  const [localStatus, setLocalStatus] = useState<RoomStatus>(room.status);
+  const [localHousekeeper, setLocalHousekeeper] = useState<string | undefined>(room.assignedHousekeeper);
+
+  useEffect(() => {
+    setLocalStatus(room.status);
+  }, [room.status]);
+
+  useEffect(() => {
+    setLocalHousekeeper(room.assignedHousekeeper);
+  }, [room.assignedHousekeeper]);
+  
   const dropdownRef = useRef<HTMLDivElement>(null);
   const housekeeperRef = useRef<HTMLDivElement>(null);
   
   const typeColors = ROOM_TYPE_COLORS[room.type];
-  const statusColors = ROOM_STATUS_COLORS[room.status] ?? ROOM_STATUS_COLORS['Vacant'];
+  const statusColors = ROOM_STATUS_COLORS[localStatus] ?? ROOM_STATUS_COLORS['Vacant'];
   const cardStyle = getStatusCardStyle(statusColors.hex);
 
   useEffect(() => {
@@ -153,11 +164,13 @@ function RoomCard({
   }, []);
 
   const handleStatusSelect = (status: RoomStatus) => {
+    setLocalStatus(status);
     onStatusChange(room.number, status);
     setIsDropdownOpen(false);
   };
 
   const handleHousekeeperSelect = (name: string) => {
+    setLocalHousekeeper(name || undefined);
     onHousekeeperChange(room.number, name);
     setIsHousekeeperOpen(false);
     setHkSearch('');
@@ -205,16 +218,16 @@ function RoomCard({
           }}
           className="w-full px-1.5 py-1 rounded-lg bg-black/10 dark:bg-white/5 border border-[var(--border)] hover:bg-black/20 dark:hover:bg-white/10 transition-colors flex items-center justify-center gap-1.5 cursor-pointer overflow-hidden"
         >
-          {room.assignedHousekeeper ? (
+          {localHousekeeper ? (
             <>
               <div 
                 className="w-3.5 h-3.5 rounded-full flex items-center justify-center text-[7px] font-black text-white flex-shrink-0"
-                style={{ backgroundColor: getHousekeeperColor(room.assignedHousekeeper) }}
+                style={{ backgroundColor: getHousekeeperColor(localHousekeeper) }}
               >
-                {getHousekeeperInitials(room.assignedHousekeeper)}
+                {getHousekeeperInitials(localHousekeeper)}
               </div>
               <span className="text-[8px] font-black text-foreground truncate max-w-[55px] leading-none">
-                {room.assignedHousekeeper}
+                {localHousekeeper}
               </span>
             </>
           ) : (
@@ -271,7 +284,7 @@ function RoomCard({
                     </div>
                     <span>{hk.name}</span>
                   </div>
-                  {room.assignedHousekeeper === hk.name && (
+                  {localHousekeeper === hk.name && (
                     <span className="text-[8px] text-green-500 font-bold">✓</span>
                   )}
                 </button>
@@ -294,7 +307,7 @@ function RoomCard({
                 key={status}
                 onClick={() => handleStatusSelect(status)}
                 className={`flex items-center gap-2 px-3 py-2 text-xs font-bold text-left hover:bg-muted/50 transition-colors ${
-                  room.status === status ? statusColors.textClass : 'text-foreground'
+                  localStatus === status ? statusColors.textClass : 'text-foreground'
                 }`}
               >
                 <div className={`h-2 w-2 rounded-full`} style={{ backgroundColor: sc.hex }}></div>
