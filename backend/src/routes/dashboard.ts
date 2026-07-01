@@ -19,8 +19,8 @@ router.get('/stats', requireAuth, async (req: AuthenticatedRequest, res: Respons
     const occupancyRate = totalRooms > 0 ? Math.round((occupiedCount / totalRooms) * 100) : 0;
 
     // Weekly Occupancy (Mon - Sun)
-    // We bind the current live occupancy rate to Sunday, and show realistic values for other days
-    const weeklyOccupancy = [
+    // We bind the current live occupancy rate to Sunday, and show realistic values for other days (if totalRooms > 0)
+    const weeklyOccupancy = totalRooms > 0 ? [
       { day: 'Mon', rate: 64 },
       { day: 'Tue', rate: 68 },
       { day: 'Wed', rate: 72 },
@@ -28,6 +28,14 @@ router.get('/stats', requireAuth, async (req: AuthenticatedRequest, res: Respons
       { day: 'Fri', rate: 90 },
       { day: 'Sat', rate: 94 },
       { day: 'Sun', rate: occupancyRate },
+    ] : [
+      { day: 'Mon', rate: 0 },
+      { day: 'Tue', rate: 0 },
+      { day: 'Wed', rate: 0 },
+      { day: 'Thu', rate: 0 },
+      { day: 'Fri', rate: 0 },
+      { day: 'Sat', rate: 0 },
+      { day: 'Sun', rate: 0 },
     ];
 
     res.status(200).json({

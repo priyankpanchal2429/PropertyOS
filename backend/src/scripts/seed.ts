@@ -57,74 +57,10 @@ async function seed() {
       console.log('[Seed] Admin user already exists. Skipping user seed.');
     }
 
-    // 2. Seed Hotel Rooms
+    // 2. Seed Hotel Rooms - Cleaned so user starts with empty rooms database
     console.log('[Seed] Cleaning old rooms database...');
     await Room.deleteMany({});
-
-    const allRoomsToSeed: any[] = [];
-
-    // Helper to generate status distributions
-    const getSampleStatusAndGuest = (index: number) => {
-      // 70% Vacant, 20% Occupied, 10% Dirty
-      const mod = index % 10;
-      if (mod === 0 || mod === 3) {
-        const guestName = sampleGuests[Math.floor(Math.random() * sampleGuests.length)];
-        return { status: 'Occupied', currentGuestName: guestName };
-      }
-      if (mod === 5) {
-        return { status: 'Dirty', currentGuestName: undefined };
-      }
-      return { status: 'Vacant', currentGuestName: undefined };
-    };
-
-    let idx = 0;
-
-    // 1 Queen Bed Rooms
-    queenRooms.forEach((num) => {
-      const { status, currentGuestName } = getSampleStatusAndGuest(idx++);
-      allRoomsToSeed.push({
-        number: num,
-        type: '1 Queen Bed',
-        status,
-        currentGuestName,
-      });
-    });
-
-    // 1 King Bed Rooms
-    kingRooms.forEach((num) => {
-      const { status, currentGuestName } = getSampleStatusAndGuest(idx++);
-      allRoomsToSeed.push({
-        number: num,
-        type: '1 King Bed',
-        status,
-        currentGuestName,
-      });
-    });
-
-    // 1 King ADA Rooms
-    adaRooms.forEach((num) => {
-      const { status, currentGuestName } = getSampleStatusAndGuest(idx++);
-      allRoomsToSeed.push({
-        number: num,
-        type: '1 King ADA',
-        status,
-        currentGuestName,
-      });
-    });
-
-    // 2 Queen Beds Rooms
-    doubleQueenRooms.forEach((num) => {
-      const { status, currentGuestName } = getSampleStatusAndGuest(idx++);
-      allRoomsToSeed.push({
-        number: num,
-        type: '2 Queen Beds',
-        status,
-        currentGuestName,
-      });
-    });
-
-    await Room.insertMany(allRoomsToSeed);
-    console.log(`[Seed] Seeded ${allRoomsToSeed.length} hotel rooms successfully!`);
+    console.log('[Seed] Database rooms cleared successfully!');
 
   } catch (error) {
     console.error('[Seed] Database seeding failed:', error);

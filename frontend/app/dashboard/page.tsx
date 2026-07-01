@@ -236,6 +236,20 @@ export default function DashboardPage() {
 
   // Get active rooms and stats based on selected preset/date
   const getActiveStatsAndRooms = () => {
+    if (!realRooms || realRooms.length === 0) {
+      return {
+        rooms: [],
+        stats: {
+          totalRooms: 0,
+          occupiedRooms: 0,
+          vacantRooms: 0,
+          dirtyRooms: 0,
+          maintenanceRooms: 0,
+          occupancyRate: 0,
+        }
+      };
+    }
+
     if (selectedPreset === 'Today') {
       return { rooms: realRooms, stats: realStats };
     }
@@ -359,11 +373,11 @@ export default function DashboardPage() {
     }
   };
   const maxRate = Math.max(...activeOccupancy.map(d => d.rate), 1);
-  const totalRoomsCount = stats.totalRooms || 50;
-  const vacantPct = (stats.vacantRooms / totalRoomsCount) * 100;
-  const occupiedPct = (stats.occupiedRooms / totalRoomsCount) * 100;
-  const maintenancePct = (stats.maintenanceRooms / totalRoomsCount) * 100;
-  const dirtyPct = (stats.dirtyRooms / totalRoomsCount) * 100;
+  const totalRoomsCount = stats.totalRooms;
+  const vacantPct = totalRoomsCount > 0 ? (stats.vacantRooms / totalRoomsCount) * 100 : 0;
+  const occupiedPct = totalRoomsCount > 0 ? (stats.occupiedRooms / totalRoomsCount) * 100 : 0;
+  const maintenancePct = totalRoomsCount > 0 ? (stats.maintenanceRooms / totalRoomsCount) * 100 : 0;
+  const dirtyPct = totalRoomsCount > 0 ? (stats.dirtyRooms / totalRoomsCount) * 100 : 0;
 
   const chartW = 1000;
   const count = activeOccupancy.length;
