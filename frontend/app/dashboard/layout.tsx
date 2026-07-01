@@ -82,8 +82,8 @@ export default function DashboardLayout({
   // Dynamically resolve active tab based on router pathname
   let activeTab = 'Overview';
   if (pathname.includes('/dashboard/staff')) activeTab = 'Staff';
-  else if (pathname.includes('/dashboard/rooms')) activeTab = 'Rooms & Building';
   else if (pathname.includes('/dashboard/payroll')) activeTab = 'Payroll';
+  else if (pathname.includes('/dashboard/rooms')) activeTab = 'Rooms & Building';
 
   const [notifications, setNotifications] = useState([
     {
@@ -351,7 +351,7 @@ export default function DashboardLayout({
         {/* Main Content Area */}
         <div className="flex-1 flex flex-col min-w-0">
           <main className="flex-1 w-full py-6 overflow-y-auto bg-background">
-            {activeTab === 'Overview' || activeTab === 'Staff' ? (
+            {activeTab === 'Overview' || activeTab === 'Staff' || activeTab === 'Rooms & Building' || activeTab === 'Payroll' ? (
               children
             ) : (
               <div className="flex h-[60vh] flex-col items-center justify-center border border-dashed border-card rounded-3xl p-8 text-center bg-card/30 mt-6">
