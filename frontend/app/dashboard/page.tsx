@@ -449,7 +449,7 @@ export default function DashboardPage() {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div>
           <p style={{ fontSize: 13, color: C.muted, margin: 0, fontWeight: 500 }}>
-            Hi, Property Manager (showing data for {formatCaliforniaDate(selectedDate)})
+            Hi, Property Manager
           </p>
           <h1 style={{ fontSize: 26, fontWeight: 800, color: C.white, margin: '2px 0 0 0', display: 'flex', alignItems: 'center', gap: 8 }}>
             👋 Welcome back!
