@@ -62,6 +62,25 @@ async function seed() {
     await Room.deleteMany({});
     console.log('[Seed] Database rooms cleared successfully!');
 
+    console.log('[Seed] Populating rooms...');
+    const roomDocs: any[] = [];
+    
+    queenRooms.forEach(num => {
+      roomDocs.push({ number: num, type: '1 Queen Bed', status: 'Vacant' });
+    });
+    kingRooms.forEach(num => {
+      roomDocs.push({ number: num, type: '1 King Bed', status: 'Vacant' });
+    });
+    adaRooms.forEach(num => {
+      roomDocs.push({ number: num, type: '1 King ADA', status: 'Vacant' });
+    });
+    doubleQueenRooms.forEach(num => {
+      roomDocs.push({ number: num, type: '2 Queen Beds', status: 'Vacant' });
+    });
+
+    await Room.insertMany(roomDocs);
+    console.log(`[Seed] Successfully inserted ${roomDocs.length} rooms.`);
+
   } catch (error) {
     console.error('[Seed] Database seeding failed:', error);
   } finally {

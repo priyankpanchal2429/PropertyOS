@@ -3,8 +3,9 @@ import { Schema, model, Document } from 'mongoose';
 export interface IRoom extends Document {
   number: string;
   type: '1 Queen Bed' | '1 King Bed' | '1 King ADA' | '2 Queen Beds';
-  status: 'Vacant' | 'Occupied' | 'Dirty' | 'Maintenance';
+  status: 'Vacant' | 'Dirty / Checkout' | 'Overstay';
   currentGuestName?: string;
+  assignedHousekeeper?: string;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -20,10 +21,11 @@ const RoomSchema = new Schema<IRoom>(
     status: {
       type: String,
       required: true,
-      enum: ['Vacant', 'Occupied', 'Dirty', 'Maintenance'],
+      enum: ['Vacant', 'Dirty / Checkout', 'Overstay'],
       default: 'Vacant',
     },
     currentGuestName: { type: String },
+    assignedHousekeeper: { type: String },
   },
   {
     timestamps: true,

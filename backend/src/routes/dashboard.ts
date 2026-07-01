@@ -11,12 +11,11 @@ router.get('/stats', requireAuth, async (req: AuthenticatedRequest, res: Respons
   try {
     const rooms = await Room.find({}).sort({ number: 1 }).exec();
     const totalRooms = rooms.length;
-    const occupiedCount = rooms.filter((r) => r.status === 'Occupied').length;
+    const overstayCount = rooms.filter((r) => r.status === 'Overstay').length;
     const vacantCount = rooms.filter((r) => r.status === 'Vacant').length;
-    const dirtyCount = rooms.filter((r) => r.status === 'Dirty').length;
-    const maintenanceCount = rooms.filter((r) => r.status === 'Maintenance').length;
+    const dirtyCheckoutCount = rooms.filter((r) => r.status === 'Dirty / Checkout').length;
 
-    const occupancyRate = totalRooms > 0 ? Math.round((occupiedCount / totalRooms) * 100) : 0;
+    const occupancyRate = totalRooms > 0 ? Math.round((overstayCount / totalRooms) * 100) : 0;
 
     // Weekly Occupancy (Mon - Sun)
     // We bind the current live occupancy rate to Sunday, and show realistic values for other days (if totalRooms > 0)
@@ -43,10 +42,9 @@ router.get('/stats', requireAuth, async (req: AuthenticatedRequest, res: Respons
       data: {
         stats: {
           totalRooms,
-          occupiedRooms: occupiedCount,
+          overstayRooms: overstayCount,
           vacantRooms: vacantCount,
-          dirtyRooms: dirtyCount,
-          maintenanceRooms: maintenanceCount,
+          dirtyCheckoutRooms: dirtyCheckoutCount,
           occupancyRate,
         },
         rooms,
@@ -62,17 +60,24 @@ router.get('/stats', requireAuth, async (req: AuthenticatedRequest, res: Respons
 router.patch('/rooms/:number/status', requireAuth, async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
   try {
     const { number } = req.params;
-    const { status, currentGuestName } = req.body;
+    const { status, currentGuestName, assignedHousekeeper } = req.body;
 
-    if (!['Vacant', 'Occupied', 'Dirty', 'Maintenance'].includes(status)) {
-      throw new ApiError(400, 'Invalid room status value');
+    const updateFields: any = {};
+
+    if (status !== undefined) {
+      if (!['Vacant', 'Dirty / Checkout', 'Overstay'].includes(status)) {
+        throw new ApiError(400, 'Invalid room status value');
+      }
+      updateFields.status = status;
+      if (status === 'Overstay') {
+        updateFields.currentGuestName = currentGuestName || 'Walk-in Guest';
+      } else {
+        updateFields.currentGuestName = undefined;
+      }
     }
 
-    const updateFields: any = { status };
-    if (status === 'Occupied') {
-      updateFields.currentGuestName = currentGuestName || 'Walk-in Guest';
-    } else {
-      updateFields.currentGuestName = undefined;
+    if (assignedHousekeeper !== undefined) {
+      updateFields.assignedHousekeeper = assignedHousekeeper;
     }
 
     const updatedRoom = await Room.findOneAndUpdate(
