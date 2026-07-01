@@ -12,6 +12,7 @@ import {
   Accessibility
 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
+import { apiClient } from '@/lib/api-client';
 
 interface Room {
   number: string;
@@ -347,22 +348,19 @@ export default function RoomsLayoutPage() {
   const { data: statsData, isLoading } = useQuery({
     queryKey: ['dashboardStats'],
     queryFn: async () => {
-      const res = await fetch('/api/dashboard/stats');
-      if (!res.ok) throw new Error('Failed to fetch rooms');
-      return res.json();
+      const res = await apiClient.get('/dashboard/stats');
+      return res.data;
     },
     refetchInterval: 10000,
   });
 
   const updateRoomMutation = useMutation({
     mutationFn: async ({ number, status, assignedHousekeeper }: { number: string; status?: RoomStatus; assignedHousekeeper?: string }) => {
-      const res = await fetch(`/api/dashboard/rooms/${number}/status`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status, assignedHousekeeper })
+      const res = await apiClient.patch(`/dashboard/rooms/${number}/status`, {
+        status,
+        assignedHousekeeper
       });
-      if (!res.ok) throw new Error('Failed to update room');
-      return res.json();
+      return res.data;
     },
     onMutate: async ({ number, status, assignedHousekeeper }) => {
       await queryClient.cancelQueries({ queryKey: ['dashboardStats'] });
