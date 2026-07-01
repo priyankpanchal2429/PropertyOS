@@ -82,6 +82,7 @@ export default function DashboardLayout({
   // Dynamically resolve active tab based on router pathname
   let activeTab = 'Overview';
   if (pathname.includes('/dashboard/staff')) activeTab = 'Staff';
+  else if (pathname.includes('/dashboard/rooms')) activeTab = 'Rooms & Building';
   else if (pathname.includes('/dashboard/payroll')) activeTab = 'Payroll';
 
   const [notifications, setNotifications] = useState([
