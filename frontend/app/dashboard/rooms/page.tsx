@@ -442,49 +442,6 @@ export default function PropertyMapPage() {
             </div>
           </div>
 
-          {/* FRONT DESK PROPERTY INFO */}
-          <div className="rounded-2xl p-5 border bg-[var(--card)] border-[var(--border)] shadow-sm space-y-4">
-            <div className="flex items-center gap-2 pb-2 border-b border-[var(--border)]">
-              <Info className="h-4 w-4 text-cyan-500" />
-              <span className="text-xs font-black uppercase tracking-wider text-muted-foreground">Front Desk Board</span>
-            </div>
-
-            <div className="space-y-3 text-xs">
-              <div className="flex justify-between items-center py-1 border-b border-[var(--border)]">
-                <span className="text-muted-foreground font-semibold flex items-center gap-1.5">
-                  <Clock className="h-3.5 w-3.5 text-muted-foreground" />
-                  Office Hours
-                </span>
-                <span className="font-extrabold text-foreground">9 AM - 9 PM</span>
-              </div>
-
-              <div className="flex justify-between items-center py-1 border-b border-[var(--border)]">
-                <span className="text-muted-foreground font-semibold">Night Window</span>
-                <span className="font-extrabold text-foreground">Until 11 PM</span>
-              </div>
-
-              <div className="flex justify-between items-center py-1 border-b border-[var(--border)]">
-                <span className="text-muted-foreground font-semibold">Check-In</span>
-                <span className="font-extrabold text-foreground">3:00 PM</span>
-              </div>
-
-              <div className="flex justify-between items-center py-1 border-b border-[var(--border)]">
-                <span className="text-muted-foreground font-semibold">Check-Out</span>
-                <span className="font-extrabold text-foreground">11:00 AM</span>
-              </div>
-
-              <div className="py-2 bg-muted/20 rounded-xl px-3 space-y-1.5 border">
-                <div className="flex items-center gap-1.5 text-cyan-500">
-                  <Wifi className="h-4 w-4" />
-                  <span className="text-[10px] font-black uppercase tracking-wider">Property Wifi</span>
-                </div>
-                <div className="text-[11px] leading-relaxed">
-                  <div><span className="text-muted-foreground font-semibold">WIFI:</span> <span className="font-extrabold text-foreground">BAY BREEZE</span></div>
-                  <div><span className="text-muted-foreground font-semibold">PASSWORD:</span> <span className="font-extrabold text-foreground bg-amber-500/25 px-1.5 py-0.5 rounded text-amber-600 dark:text-amber-400">hotel007</span></div>
-                </div>
-              </div>
-            </div>
-          </div>
 
           {/* MAP LEGEND */}
           <div className="rounded-2xl p-5 border bg-[var(--card)] border-[var(--border)] shadow-sm space-y-4">
