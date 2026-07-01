@@ -163,11 +163,10 @@ function RoomCard({
   }, [activeHousekeepers, hkSearch]);
 
   return (
-    <div className="relative">
+    <div className="relative" ref={dropdownRef}>
       <div
-        onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-        className={`relative w-28 h-28 rounded-2xl border ${statusColors.border} ${statusColors.bg} flex flex-col items-center justify-between p-3 cursor-pointer shadow-sm transition-all hover:shadow-md hover:${statusColors.borderActive}`}
-        ref={dropdownRef}
+        onClick={() => { setIsDropdownOpen(!isDropdownOpen); setIsHousekeeperOpen(false); }}
+        className={`relative w-28 h-28 rounded-2xl border ${statusColors.border} ${statusColors.bg} flex flex-col items-center justify-between p-3 cursor-pointer shadow-sm transition-all hover:shadow-md`}
       >
         {/* Status Badge */}
         <div className="absolute top-2 right-2">
@@ -197,7 +196,6 @@ function RoomCard({
             setIsHousekeeperOpen(!isHousekeeperOpen);
           }}
           className="w-full px-1.5 py-1 rounded-lg bg-black/10 dark:bg-white/5 border border-[var(--border)] hover:bg-black/20 dark:hover:bg-white/10 transition-colors flex items-center justify-center gap-1.5 cursor-pointer overflow-hidden"
-          ref={housekeeperRef}
         >
           {room.assignedHousekeeper ? (
             <>
@@ -223,61 +221,64 @@ function RoomCard({
           )}
         </div>
 
-        {/* Housekeeper Dropdown */}
-        {isHousekeeperOpen && (
-          <div 
-            onClick={(e) => e.stopPropagation()}
-            className="absolute z-[60] mt-1 w-44 bg-[var(--card)] border border-[var(--border)] rounded-xl shadow-lg p-2 flex flex-col gap-1.5 left-1/2 -translate-x-1/2 bottom-12"
-          >
-            <input
-              type="text"
-              placeholder="Search..."
-              value={hkSearch}
-              onChange={(e) => setHkSearch(e.target.value)}
-              className="w-full px-2 py-1 text-[10px] rounded-md bg-muted/50 border border-[var(--border)] text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
-            />
-            <div className="max-h-32 overflow-y-auto flex flex-col gap-0.5">
-              <button
-                onClick={() => handleHousekeeperSelect('')}
-                className="flex items-center gap-1.5 px-2 py-1.5 text-[10px] font-bold text-left hover:bg-muted/50 rounded transition-colors text-muted-foreground"
-              >
-                <div className="w-2.5 h-2.5 rounded-full bg-muted flex items-center justify-center text-[6px] font-bold">×</div>
-                Unassign
-              </button>
-              {filteredHks.map((hk) => {
-                const color = getHousekeeperColor(hk.name);
-                return (
-                  <button
-                    key={hk.name}
-                    onClick={() => handleHousekeeperSelect(hk.name)}
-                    className="flex items-center justify-between px-2 py-1.5 text-[10px] font-bold text-left hover:bg-muted/50 rounded transition-colors text-foreground"
-                  >
-                    <div className="flex items-center gap-1.5">
-                      <div 
-                        className="w-3 h-3 rounded-full flex items-center justify-center text-[6px] font-black text-white"
-                        style={{ backgroundColor: color }}
-                      >
-                        {getHousekeeperInitials(hk.name)}
-                      </div>
-                      <span>{hk.name}</span>
-                    </div>
-                    {room.assignedHousekeeper === hk.name && (
-                      <span className="text-[8px] text-green-500 font-bold">✓</span>
-                    )}
-                  </button>
-                );
-              })}
-              {filteredHks.length === 0 && (
-                <span className="text-[9px] text-muted-foreground p-1 text-center">No staff found</span>
-              )}
-            </div>
-          </div>
-        )}
-      </div>
+      </div>{/* end inner card div */}
 
-      {/* Room Status Dropdown */}
+      {/* Housekeeper Dropdown — renders ABOVE the card */}
+      {isHousekeeperOpen && (
+        <div 
+          ref={housekeeperRef}
+          onClick={(e) => e.stopPropagation()}
+          className="absolute z-[200] bottom-full mb-2 w-44 bg-[var(--card)] border border-[var(--border)] rounded-xl shadow-xl p-2 flex flex-col gap-1.5 left-1/2 -translate-x-1/2"
+        >
+          <input
+            type="text"
+            placeholder="Search..."
+            value={hkSearch}
+            onChange={(e) => setHkSearch(e.target.value)}
+            className="w-full px-2 py-1 text-[10px] rounded-md bg-muted/50 border border-[var(--border)] text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+            autoFocus
+          />
+          <div className="max-h-32 overflow-y-auto flex flex-col gap-0.5">
+            <button
+              onClick={() => handleHousekeeperSelect('')}
+              className="flex items-center gap-1.5 px-2 py-1.5 text-[10px] font-bold text-left hover:bg-muted/50 rounded transition-colors text-muted-foreground"
+            >
+              <div className="w-2.5 h-2.5 rounded-full bg-muted flex items-center justify-center text-[6px] font-bold">×</div>
+              Unassign
+            </button>
+            {filteredHks.map((hk) => {
+              const color = getHousekeeperColor(hk.name);
+              return (
+                <button
+                  key={hk.name}
+                  onClick={() => handleHousekeeperSelect(hk.name)}
+                  className="flex items-center justify-between px-2 py-1.5 text-[10px] font-bold text-left hover:bg-muted/50 rounded transition-colors text-foreground"
+                >
+                  <div className="flex items-center gap-1.5">
+                    <div 
+                      className="w-3 h-3 rounded-full flex items-center justify-center text-[6px] font-black text-white"
+                      style={{ backgroundColor: color }}
+                    >
+                      {getHousekeeperInitials(hk.name)}
+                    </div>
+                    <span>{hk.name}</span>
+                  </div>
+                  {room.assignedHousekeeper === hk.name && (
+                    <span className="text-[8px] text-green-500 font-bold">✓</span>
+                  )}
+                </button>
+              );
+            })}
+            {filteredHks.length === 0 && (
+              <span className="text-[9px] text-muted-foreground p-1 text-center">No staff found</span>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Room Status Dropdown — renders BELOW the card */}
       {isDropdownOpen && (
-        <div className="absolute z-50 mt-1 w-36 bg-[var(--card)] border border-[var(--border)] rounded-xl shadow-lg overflow-hidden flex flex-col left-1/2 -translate-x-1/2 top-14">
+        <div className="absolute z-[200] top-full mt-1 w-36 bg-[var(--card)] border border-[var(--border)] rounded-xl shadow-xl overflow-hidden flex flex-col left-1/2 -translate-x-1/2">
           {ROOM_STATUSES.map((status) => {
             const sc = ROOM_STATUS_COLORS[status];
             return (
