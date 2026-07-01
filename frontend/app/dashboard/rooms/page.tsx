@@ -43,11 +43,10 @@ const ROOM_STATUS_COLORS: Record<RoomStatus, { textClass: string; hex: string; b
   'Overstay':        { textClass: 'text-blue-600 dark:text-blue-400',  hex: '#3B82F6', bg: 'rgba(59, 130, 246, 0.1)', border: 'rgba(59, 130, 246, 0.3)' },
 };
 
-// Helper: derive card inline styles from explicit rgba colors
-const getStatusCardStyle = (colors: { bg: string; border: string }): React.CSSProperties => ({
-  borderColor: colors.border,
-  backgroundColor: colors.bg,
-});
+const getStatusCardStyle = (colors: { bg: string; border: string }) => ({
+  '--card-bg': colors.bg,
+  '--card-border': colors.border,
+} as React.CSSProperties);
 
 const ROOM_TYPE_COLORS: Record<RoomType, { bg: string; text: string; rawColor: string; glow: string }> = {
   '1 Queen Bed': {
@@ -185,8 +184,12 @@ function RoomCard({
   return (
     <div className="relative" ref={dropdownRef}>
       <div
-        onClick={() => { setIsDropdownOpen(!isDropdownOpen); setIsHousekeeperOpen(false); }}
-        className="relative w-28 h-28 rounded-2xl border flex flex-col items-center justify-between p-3 cursor-pointer shadow-sm transition-all hover:shadow-md"
+        onMouseDown={(e) => { 
+          e.preventDefault();
+          setIsDropdownOpen(!isDropdownOpen); 
+          setIsHousekeeperOpen(false); 
+        }}
+        className="relative w-28 h-28 rounded-2xl border flex flex-col items-center justify-between p-3 cursor-pointer shadow-sm transition-all hover:shadow-md bg-[var(--card-bg)] border-[var(--card-border)]"
         style={cardStyle}
       >
         {/* Status Badge */}
@@ -306,7 +309,7 @@ function RoomCard({
               <button
                 key={status}
                 type="button"
-                onClick={(e) => {
+                onMouseDown={(e) => {
                   e.preventDefault();
                   e.stopPropagation();
                   handleStatusSelect(status);
