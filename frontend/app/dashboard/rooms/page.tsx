@@ -37,16 +37,16 @@ const ROOM_STATUSES: RoomStatus[] = [
   'Overstay'
 ];
 
-const ROOM_STATUS_COLORS: Record<RoomStatus, { textClass: string; hex: string }> = {
-  'Vacant':          { textClass: 'text-green-600 dark:text-green-400', hex: '#22C55E' },
-  'Dirty / Checkout':{ textClass: 'text-red-600 dark:text-red-400',   hex: '#EF4444' },
-  'Overstay':        { textClass: 'text-blue-600 dark:text-blue-400',  hex: '#3B82F6' },
+const ROOM_STATUS_COLORS: Record<RoomStatus, { textClass: string; hex: string; bg: string; border: string }> = {
+  'Vacant':          { textClass: 'text-green-600 dark:text-green-400', hex: '#22C55E', bg: 'rgba(34, 197, 94, 0.1)', border: 'rgba(34, 197, 94, 0.3)' },
+  'Dirty / Checkout':{ textClass: 'text-red-600 dark:text-red-400',   hex: '#EF4444', bg: 'rgba(239, 68, 68, 0.1)', border: 'rgba(239, 68, 68, 0.3)' },
+  'Overstay':        { textClass: 'text-blue-600 dark:text-blue-400',  hex: '#3B82F6', bg: 'rgba(59, 130, 246, 0.1)', border: 'rgba(59, 130, 246, 0.3)' },
 };
 
-// Helper: derive card inline styles from hex color
-const getStatusCardStyle = (hex: string): React.CSSProperties => ({
-  borderColor: hex + '55',        // ~33% alpha
-  backgroundColor: hex + '1A',    // ~10% alpha
+// Helper: derive card inline styles from explicit rgba colors
+const getStatusCardStyle = (colors: { bg: string; border: string }): React.CSSProperties => ({
+  borderColor: colors.border,
+  backgroundColor: colors.bg,
 });
 
 const ROOM_TYPE_COLORS: Record<RoomType, { bg: string; text: string; rawColor: string; glow: string }> = {
@@ -147,7 +147,7 @@ function RoomCard({
   
   const typeColors = ROOM_TYPE_COLORS[room.type];
   const statusColors = ROOM_STATUS_COLORS[localStatus] ?? ROOM_STATUS_COLORS['Vacant'];
-  const cardStyle = getStatusCardStyle(statusColors.hex);
+  const cardStyle = getStatusCardStyle(statusColors);
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -305,7 +305,12 @@ function RoomCard({
             return (
               <button
                 key={status}
-                onClick={() => handleStatusSelect(status)}
+                type="button"
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  handleStatusSelect(status);
+                }}
                 className={`flex items-center gap-2 px-3 py-2 text-xs font-bold text-left hover:bg-muted/50 transition-colors ${
                   localStatus === status ? statusColors.textClass : 'text-foreground'
                 }`}
