@@ -218,7 +218,6 @@ export default function RoomsLayoutPage() {
               key={type}
               className="rounded-2xl p-4 border bg-[var(--card)] border-[var(--border)] flex items-center justify-between shadow-sm relative overflow-hidden transition-all hover:-translate-y-0.5 hover:shadow-md"
             >
-              <div className="absolute top-0 left-0 w-full h-[3px]" style={{ backgroundColor: colors.rawColor }} />
               <div>
                 <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider block">{type}</span>
                 <span className="text-xl font-black text-foreground block mt-1">
