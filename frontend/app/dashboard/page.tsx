@@ -1117,7 +1117,7 @@ export default function DashboardPage() {
               <div style={{ display: 'flex', flexDirection: 'column', gap: 6, paddingBottom: 4 }}>
                 <div style={{ display: 'flex', alignItems: 'baseline', gap: 4 }}>
                   <span style={{ fontSize: 32, fontWeight: 900, color: C.white, lineHeight: 1 }}>
-                    {stats.dirtyRooms}
+                    {stats.dirtyCheckoutRooms || 0}
                   </span>
                   <span style={{ fontSize: 11, color: C.muted, fontWeight: 600 }}>
                     from {stats.totalRooms} rooms
@@ -1133,11 +1133,13 @@ export default function DashboardPage() {
                   const x0 = 45;
                   const y0 = 57;
                   const R = 32;
-                  const ratePct = stats.totalRooms ? (stats.dirtyRooms / stats.totalRooms) * 100 : 0;
+                  const total = stats.totalRooms || 0;
+                  const dirty = stats.dirtyCheckoutRooms || 0;
+                  const ratePct = total > 0 ? (dirty / total) * 100 : 0;
                   const angle = -180 + (ratePct / 100) * 180;
                   const rad = angle * Math.PI / 180;
-                  const endX = x0 + R * Math.cos(rad);
-                  const endY = y0 + R * Math.sin(rad);
+                  const endX = isNaN(rad) ? x0 - R : x0 + R * Math.cos(rad);
+                  const endY = isNaN(rad) ? y0 : y0 + R * Math.sin(rad);
 
                   return (
                     <svg width="90" height="60" viewBox="0 0 90 60" style={{ overflow: 'visible', position: 'absolute', top: 0, left: 0 }}>
