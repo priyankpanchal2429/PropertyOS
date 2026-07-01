@@ -71,8 +71,6 @@ router.patch('/rooms/:number/status', requireAuth, async (req: AuthenticatedRequ
       updateFields.status = status;
       if (status === 'Overstay') {
         updateFields.currentGuestName = currentGuestName || 'Walk-in Guest';
-      } else {
-        updateFields.currentGuestName = undefined;
       }
     }
 
@@ -80,9 +78,14 @@ router.patch('/rooms/:number/status', requireAuth, async (req: AuthenticatedRequ
       updateFields.assignedHousekeeper = assignedHousekeeper;
     }
 
+    const updateQuery: any = { $set: updateFields };
+    if (status !== undefined && status !== 'Overstay') {
+      updateQuery.$unset = { currentGuestName: 1 };
+    }
+
     const updatedRoom = await Room.findOneAndUpdate(
       { number },
-      { $set: updateFields },
+      updateQuery,
       { new: true }
     ).exec();
 
