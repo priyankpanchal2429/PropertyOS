@@ -37,11 +37,17 @@ const ROOM_STATUSES: RoomStatus[] = [
   'Overstay'
 ];
 
-const ROOM_STATUS_COLORS: Record<RoomStatus, { bg: string; text: string; border: string; borderActive: string; hex: string }> = {
-  'Vacant': { bg: 'bg-green-500/10 dark:bg-green-500/20', text: 'text-green-600 dark:text-green-400', border: 'border-green-500/20', borderActive: 'border-green-500/50', hex: '#22C55E' },
-  'Dirty / Checkout': { bg: 'bg-red-500/10 dark:bg-red-500/20', text: 'text-red-600 dark:text-red-400', border: 'border-red-500/20', borderActive: 'border-red-500/50', hex: '#EF4444' },
-  'Overstay': { bg: 'bg-blue-500/10 dark:bg-blue-500/20', text: 'text-blue-600 dark:text-blue-400', border: 'border-blue-500/20', borderActive: 'border-blue-500/50', hex: '#3B82F6' },
+const ROOM_STATUS_COLORS: Record<RoomStatus, { textClass: string; hex: string }> = {
+  'Vacant':          { textClass: 'text-green-600 dark:text-green-400', hex: '#22C55E' },
+  'Dirty / Checkout':{ textClass: 'text-red-600 dark:text-red-400',   hex: '#EF4444' },
+  'Overstay':        { textClass: 'text-blue-600 dark:text-blue-400',  hex: '#3B82F6' },
 };
+
+// Helper: derive card inline styles from hex color
+const getStatusCardStyle = (hex: string): React.CSSProperties => ({
+  borderColor: hex + '55',        // ~33% alpha
+  backgroundColor: hex + '1A',    // ~10% alpha
+});
 
 const ROOM_TYPE_COLORS: Record<RoomType, { bg: string; text: string; rawColor: string; glow: string }> = {
   '1 Queen Bed': {
@@ -129,7 +135,8 @@ function RoomCard({
   const housekeeperRef = useRef<HTMLDivElement>(null);
   
   const typeColors = ROOM_TYPE_COLORS[room.type];
-  const statusColors = ROOM_STATUS_COLORS[room.status] || ROOM_STATUS_COLORS['Vacant'];
+  const statusColors = ROOM_STATUS_COLORS[room.status] ?? ROOM_STATUS_COLORS['Vacant'];
+  const cardStyle = getStatusCardStyle(statusColors.hex);
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -166,7 +173,8 @@ function RoomCard({
     <div className="relative" ref={dropdownRef}>
       <div
         onClick={() => { setIsDropdownOpen(!isDropdownOpen); setIsHousekeeperOpen(false); }}
-        className={`relative w-28 h-28 rounded-2xl border ${statusColors.border} ${statusColors.bg} flex flex-col items-center justify-between p-3 cursor-pointer shadow-sm transition-all hover:shadow-md`}
+        className="relative w-28 h-28 rounded-2xl border flex flex-col items-center justify-between p-3 cursor-pointer shadow-sm transition-all hover:shadow-md"
+        style={cardStyle}
       >
         {/* Status Badge */}
         <div className="absolute top-2 right-2">
@@ -175,7 +183,7 @@ function RoomCard({
 
         {/* Room Number & Bed Config */}
         <div className="flex flex-col items-center gap-0.5 w-full mt-1">
-          <span className={`text-base font-black tracking-tight ${statusColors.text}`}>
+          <span className={`text-base font-black tracking-tight ${statusColors.textClass}`}>
             {room.number}
           </span>
           <div className="flex items-center gap-1 justify-center h-4">
@@ -286,7 +294,7 @@ function RoomCard({
                 key={status}
                 onClick={() => handleStatusSelect(status)}
                 className={`flex items-center gap-2 px-3 py-2 text-xs font-bold text-left hover:bg-muted/50 transition-colors ${
-                  room.status === status ? sc.text : 'text-foreground'
+                  room.status === status ? statusColors.textClass : 'text-foreground'
                 }`}
               >
                 <div className={`h-2 w-2 rounded-full`} style={{ backgroundColor: sc.hex }}></div>
