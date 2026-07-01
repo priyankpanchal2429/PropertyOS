@@ -162,7 +162,7 @@ export default function DashboardLayout({
   const navigation: SidebarItem[] = [
     { name: 'Overview', icon: LayoutGrid, href: '/dashboard' },
     { name: 'Staff', icon: Users, href: '/dashboard/staff' },
-    { name: 'Product', icon: AppWindow, href: '#' },
+    { name: 'Rooms & Building', icon: Building2, href: '/dashboard/rooms' },
     { name: 'Customer', icon: User, href: '#' },
     { name: 'Payroll', icon: ShoppingCart, href: '/dashboard/payroll' },
     { name: 'Cash flow', icon: Wallet, href: '#', locked: true },
